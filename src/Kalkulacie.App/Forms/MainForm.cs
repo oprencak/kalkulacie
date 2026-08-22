@@ -7,6 +7,18 @@ public partial class MainForm : Form
         InitializeComponent();
     }
 
+    private void btnKalkulacie_Click(object sender, EventArgs e)
+    {
+        using var form = new PriceListForm();
+        form.ShowDialog(this);
+    }
+
+    private void btnProducts_Click(object sender, EventArgs e)
+    {
+        using var form = new ProductsForm();
+        form.ShowDialog(this);
+    }
+
     private void btnMaterials_Click(object sender, EventArgs e)
     {
         using var form = new MaterialsForm();
@@ -16,12 +28,6 @@ public partial class MainForm : Form
     private void btnOperations_Click(object sender, EventArgs e)
     {
         using var form = new OperationsForm();
-        form.ShowDialog(this);
-    }
-
-    private void btnProducts_Click(object sender, EventArgs e)
-    {
-        using var form = new ProductsForm();
         form.ShowDialog(this);
     }
 }

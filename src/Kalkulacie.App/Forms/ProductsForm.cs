@@ -10,17 +10,22 @@ public partial class ProductsForm : Form
     private readonly KalkulacieDbContext _db;
     private BindingSource _bindingSource = new();
 
-    public ProductsForm()
+    public ProductsForm(CalculationMode? initialFilter = null)
     {
         InitializeComponent();
         _db = AppDb.CreateContext();
-        Load += OnLoad;
+        Load += (_, _) =>
+        {
+            if (initialFilter == CalculationMode.Manual) rdManual.Checked = true;
+            else if (initialFilter == CalculationMode.Automatic) rdAutomatic.Checked = true;
+            OnLoad(null, EventArgs.Empty);
+        };
     }
 
     private void OnLoad(object? sender, EventArgs e)
     {
         RefreshList();
-        grid.DataSource = _bindingSource;
+        if (grid.DataSource == null) grid.DataSource = _bindingSource;
 
         grid.Columns["Id"].Visible = false;
         grid.Columns["CompositionRows"].Visible = false;
