@@ -17,6 +17,7 @@ partial class ProductsForm
         this.btnAdd = new Button();
         this.btnDetail = new Button();
         this.btnDelete = new Button();
+        this.btnClone = new Button();
         this.rdAll = new RadioButton();
         this.rdManual = new RadioButton();
         this.rdAutomatic = new RadioButton();
@@ -73,6 +74,13 @@ partial class ProductsForm
         this.btnDelete.Text = "Vymazať";
         this.btnDelete.Click += new EventHandler(this.btnDelete_Click);
 
+        // btnClone
+        this.btnClone.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+        this.btnClone.Location = new Point(336, 425);
+        this.btnClone.Size = new Size(100, 30);
+        this.btnClone.Text = "Kopírovať";
+        this.btnClone.Click += new EventHandler(this.btnClone_Click);
+
         // ProductsForm
         this.AutoScaleDimensions = new SizeF(7F, 15F);
         this.AutoScaleMode = AutoScaleMode.Font;
@@ -84,6 +92,7 @@ partial class ProductsForm
         this.Controls.Add(this.btnAdd);
         this.Controls.Add(this.btnDetail);
         this.Controls.Add(this.btnDelete);
+        this.Controls.Add(this.btnClone);
         this.MinimumSize = new Size(500, 400);
         this.Name = "ProductsForm";
         this.StartPosition = FormStartPosition.CenterParent;
@@ -96,6 +105,7 @@ partial class ProductsForm
     private Button btnAdd;
     private Button btnDetail;
     private Button btnDelete;
+    private Button btnClone;
     private RadioButton rdAll;
     private RadioButton rdManual;
     private RadioButton rdAutomatic;

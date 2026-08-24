@@ -81,6 +81,41 @@ public partial class ProductsForm : Form
         RefreshList();
     }
 
+    private void btnClone_Click(object sender, EventArgs e)
+    {
+        if (_bindingSource.Current is not Product source) return;
+
+        using var dlg = new CloneProductForm(source.Name);
+        if (dlg.ShowDialog(this) != DialogResult.OK) return;
+
+        var newName = dlg.NewName.Trim();
+        if (string.IsNullOrWhiteSpace(newName)) return;
+
+        _db.ChangeTracker.Clear();
+        var original = _db.Products
+            .Include(p => p.CompositionRows)
+            .First(p => p.Id == source.Id);
+
+        var clone = new Product { Name = newName, Mode = original.Mode };
+        foreach (var row in original.CompositionRows)
+        {
+            clone.CompositionRows.Add(new Core.Entities.CompositionRow
+            {
+                RowType    = row.RowType,
+                MaterialId = row.MaterialId,
+                OperationId = row.OperationId,
+                DimensionA = row.DimensionA,
+                DimensionB = row.DimensionB,
+                Quantity   = row.Quantity
+            });
+        }
+
+        _db.Products.Add(clone);
+        _db.SaveChanges();
+        RefreshList();
+        OpenDetail(clone.Id);
+    }
+
     private void grid_DoubleClick(object sender, EventArgs e)
     {
         if (_bindingSource.Current is Product product)
