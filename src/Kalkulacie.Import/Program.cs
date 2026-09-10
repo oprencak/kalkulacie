@@ -43,19 +43,15 @@ Console.WriteLine();
 
 Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
 
+// Vymazanie existujúceho súboru — import vždy vytvára DB od nuly
+if (File.Exists(dbPath)) File.Delete(dbPath);
+
 var options = new DbContextOptionsBuilder<KalkulacieDbContext>()
     .UseSqlite($"Data Source={dbPath}")
     .Options;
 
 using var db = new KalkulacieDbContext(options);
 db.Database.Migrate();
-
-// Vymazanie existujúcich dát (FK poradie)
-Console.WriteLine("Mažem existujúce dáta...");
-db.CompositionRows.ExecuteDelete();
-db.Products.ExecuteDelete();
-db.Materials.ExecuteDelete();
-db.Operations.ExecuteDelete();
 
 var reader = new DbfReader(Encoding.GetEncoding("windows-1250"));
 

@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.*" />
     <ProjectReference Include="..\Kalkulacie.Core\Kalkulacie.Core.csproj" />
   </ItemGroup>
 </Project>
