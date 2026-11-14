@@ -1,27 +1,154 @@
 using Kalkulacie.Core;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kalkulacie.App;
 
+/// <summary>
+/// Databázy ležia v priečinku <c>data</c> vedľa .exe — celý priečinok aplikácie je prenosný.
+/// V priečinku môže byť viac *.db súborov; aktívnu vyberá používateľ.
+/// </summary>
 public static class AppDb
 {
-    private static string DbPath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Kalkulacie",
-        "kalkulacie.db");
+    public const string DefaultDbFileName = "kalkulacie.db";
+    private const string LastDbFileName = "posledna-db.txt";
 
-    public static KalkulacieDbContext CreateContext()
+    public static string DataDir { get; } = Path.Combine(AppContext.BaseDirectory, "data");
+
+    public static string? DbPath { get; private set; }
+
+    /// <summary>Názov aktívnej databázy (bez prípony) na zobrazenie.</summary>
+    public static string DbName => DbPath is null ? "" : Path.GetFileNameWithoutExtension(DbPath);
+
+    public static KalkulacieDbContext CreateContext() =>
+        CreateContext(DbPath ?? throw new InvalidOperationException("Nie je vybraná databáza."));
+
+    private static KalkulacieDbContext CreateContext(string path)
     {
         var options = new DbContextOptionsBuilder<KalkulacieDbContext>()
-            .UseSqlite($"Data Source={DbPath}")
+            .UseSqlite($"Data Source={path}")
             .Options;
         return new KalkulacieDbContext(options);
     }
 
-    public static void EnsureDatabase()
+    /// <summary>Overí názov novej DB; vráti chybovú hlášku alebo null, ak je názov v poriadku.</summary>
+    public static string? ValidateNewName(string name)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(DbPath)!);
-        using var db = CreateContext();
-        db.Database.Migrate();
+        name = name.Trim();
+        if (name.Length == 0) return "Zadajte názov databázy.";
+        if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            return "Názov obsahuje nepovolené znaky ( \\ / : * ? \" < > | ).";
+        if (File.Exists(Path.Combine(DataDir, name + ".db")))
+            return $"Databáza „{name}“ už existuje.";
+        return null;
+    }
+
+    /// <summary>Vytvorí novú prázdnu DB v priečinku data (neprepína na ňu). Vráti cestu.</summary>
+    public static string Create(string name)
+    {
+        var error = ValidateNewName(name);
+        if (error is not null) throw new InvalidOperationException(error);
+
+        var path = Path.Combine(DataDir, name.Trim() + ".db");
+        using (var db = CreateContext(path))
+            db.Database.Migrate();
+        SqliteConnection.ClearAllPools();
+        return path;
+    }
+
+    /// <summary>Počty záznamov v DB — na zobrazenie pri potvrdení mazania.</summary>
+    public static (int Products, int Materials, int Operations)? GetCounts(string path)
+    {
+        try
+        {
+            using var db = CreateContext(path);
+            return (db.Products.Count(), db.Materials.Count(), db.Operations.Count());
+        }
+        catch
+        {
+            return null;
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+        }
+    }
+
+    /// <summary>Natrvalo zmaže DB súbor (aj -wal/-shm). Aktuálne otvorenú DB zmazať nejde.</summary>
+    public static void Delete(string path)
+    {
+        if (string.Equals(Path.GetFullPath(path), DbPath, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Aktuálne otvorenú databázu nie je možné zmazať.");
+
+        SqliteConnection.ClearAllPools();
+        foreach (var suffix in new[] { "-wal", "-shm", "" })
+        {
+            if (File.Exists(path + suffix))
+                File.Delete(path + suffix);
+        }
+    }
+
+    /// <summary>
+    /// Pripraví priečinok data: vytvorí ho a presunie doň starú DB uloženú priamo vedľa .exe.
+    /// </summary>
+    public static void PrepareDataDir()
+    {
+        Directory.CreateDirectory(DataDir);
+
+        var legacy = Path.Combine(AppContext.BaseDirectory, DefaultDbFileName);
+        var target = Path.Combine(DataDir, DefaultDbFileName);
+        if (File.Exists(legacy) && !File.Exists(target))
+        {
+            foreach (var suffix in new[] { "", "-wal", "-shm" })
+            {
+                if (File.Exists(legacy + suffix))
+                    File.Move(legacy + suffix, target + suffix);
+            }
+        }
+    }
+
+    /// <summary>Všetky *.db súbory v priečinku data, zoradené podľa názvu.</summary>
+    public static List<string> ListDatabases() =>
+        Directory.EnumerateFiles(DataDir, "*.db")
+            .OrderBy(Path.GetFileName, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+    /// <summary>Cesta k naposledy použitej DB, ak ešte existuje.</summary>
+    public static string? LastUsed
+    {
+        get
+        {
+            try
+            {
+                var file = Path.Combine(DataDir, LastDbFileName);
+                if (!File.Exists(file)) return null;
+                var path = Path.Combine(DataDir, File.ReadAllText(file).Trim());
+                return File.Exists(path) ? path : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+    }
+
+    /// <summary>Prepne aplikáciu na zadanú DB a aplikuje migrácie.</summary>
+    public static void Open(string path)
+    {
+        // Uvoľní zámky na predchádzajúcej DB
+        SqliteConnection.ClearAllPools();
+
+        DbPath = Path.GetFullPath(path);
+        using (var db = CreateContext())
+            db.Database.Migrate();
+
+        try
+        {
+            File.WriteAllText(Path.Combine(DataDir, LastDbFileName), Path.GetFileName(DbPath));
+        }
+        catch
+        {
+            // Zapamätanie výberu nie je kritické
+        }
     }
 }

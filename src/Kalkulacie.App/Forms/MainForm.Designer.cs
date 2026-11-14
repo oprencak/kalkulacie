@@ -18,6 +18,11 @@ partial class MainForm
         this.separator = new Label();
         this.btnMaterials = new Button();
         this.btnOperations = new Button();
+        this.components = new System.ComponentModel.Container();
+        this.separator2 = new Label();
+        this.lblDb = new Label();
+        this.btnChangeDb = new Button();
+        this.toolTip = new ToolTip(this.components);
         this.SuspendLayout();
 
         int x = 40, w = 220, h = 44, gap = 54, row = 30;
@@ -53,11 +58,32 @@ partial class MainForm
         this.btnOperations.Text = "Réžia / Práca";
         this.btnOperations.Font = new Font("Segoe UI", 11F);
         this.btnOperations.Click += new EventHandler(this.btnOperations_Click);
-        row += gap;
+        row += gap + 10;
+
+        this.separator2.Location = new Point(x, row);
+        this.separator2.Size = new Size(w, 2);
+        this.separator2.BorderStyle = BorderStyle.Fixed3D;
+        row += 10;
+
+        this.lblDb.Location = new Point(x, row);
+        this.lblDb.Size = new Size(w, 20);
+        this.lblDb.AutoEllipsis = true;
+        this.lblDb.Font = new Font("Segoe UI", 9F);
+        row += 22;
+
+        this.btnChangeDb.Location = new Point(x, row);
+        this.btnChangeDb.Size = new Size(w, 30);
+        this.btnChangeDb.Text = "Zmeniť databázu…";
+        this.btnChangeDb.Font = new Font("Segoe UI", 9F);
+        this.btnChangeDb.Click += new EventHandler(this.btnChangeDb_Click);
+        row += 30;
 
         this.AutoScaleDimensions = new SizeF(7F, 15F);
         this.AutoScaleMode = AutoScaleMode.Font;
         this.ClientSize = new Size(300, row + 20);
+        this.Controls.Add(this.separator2);
+        this.Controls.Add(this.lblDb);
+        this.Controls.Add(this.btnChangeDb);
         this.Controls.Add(this.btnKalkulacie);
         this.Controls.Add(this.btnProducts);
         this.Controls.Add(this.separator);
@@ -76,4 +102,8 @@ partial class MainForm
     private Label separator;
     private Button btnMaterials;
     private Button btnOperations;
+    private Label separator2;
+    private Label lblDb;
+    private Button btnChangeDb;
+    private ToolTip toolTip;
 }

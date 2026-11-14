@@ -12,8 +12,32 @@ static class Program
         Application.ThreadException += OnThreadException;
 
         ApplicationConfiguration.Initialize();
-        AppDb.EnsureDatabase();
+        var dbPath = ChooseDatabaseOnStartup();
+        if (dbPath is null) return;
+
+        AppDb.Open(dbPath);
         Application.Run(new MainForm());
+    }
+
+    /// <summary>
+    /// 0 databáz → vytvorí sa nová kalkulacie.db, 1 → použije sa, viac → výber v okne.
+    /// Vráti null, ak používateľ výber zrušil.
+    /// </summary>
+    private static string? ChooseDatabaseOnStartup()
+    {
+        AppDb.PrepareDataDir();
+        var databases = AppDb.ListDatabases();
+
+        switch (databases.Count)
+        {
+            case 0:
+                return Path.Combine(AppDb.DataDir, AppDb.DefaultDbFileName);
+            case 1:
+                return databases[0];
+            default:
+                using (var picker = new DatabasePickerForm())
+                    return picker.ShowDialog() == DialogResult.OK ? picker.SelectedPath : null;
+        }
     }
 
     private static void OnThreadException(object sender, ThreadExceptionEventArgs e)

@@ -17,7 +17,7 @@ Kalkulácia nákladovej ceny výrobku zo zloženia (BOM — bill of materials):
 | | |
 |---|---|
 | UI | WinForms (.NET 8) |
-| Databáza | SQLite (`%LOCALAPPDATA%\Kalkulacie\kalkulacie.db`) |
+| Databáza | SQLite — `*.db` v priečinku `data\` vedľa `Kalkulacie.App.exe` (viac DB → výber pri štarte, zmena v hlavnom menu; `AppDb.cs`) |
 | ORM | EF Core 8 (code-first, inkrementálne migrácie) |
 
 Projekty:

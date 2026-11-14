@@ -5,6 +5,34 @@ public partial class MainForm : Form
     public MainForm()
     {
         InitializeComponent();
+        UpdateDbInfo();
+    }
+
+    private void UpdateDbInfo()
+    {
+        Text = $"Kalkulácie — {AppDb.DbName}";
+        lblDb.Text = $"Databáza: {AppDb.DbName}";
+        toolTip.SetToolTip(lblDb, AppDb.DbPath);
+    }
+
+    private void btnChangeDb_Click(object sender, EventArgs e)
+    {
+        using var picker = new DatabasePickerForm();
+        if (picker.ShowDialog(this) != DialogResult.OK || picker.SelectedPath is null) return;
+        if (string.Equals(picker.SelectedPath, AppDb.DbPath, StringComparison.OrdinalIgnoreCase)) return;
+
+        var previous = AppDb.DbPath!;
+        try
+        {
+            AppDb.Open(picker.SelectedPath);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Databázu sa nepodarilo otvoriť:\n{ex.Message}", "Chyba",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            AppDb.Open(previous);
+        }
+        UpdateDbInfo();
     }
 
     private void btnKalkulacie_Click(object sender, EventArgs e)

@@ -9,9 +9,7 @@ using Microsoft.EntityFrameworkCore;
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 var sourceDir = @"C:\dev\duri\Cennik\DATA";
-var dbPath = Path.Combine(
-    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-    "Kalkulacie", "kalkulacie.db");
+var dbPath = Path.Combine(AppContext.BaseDirectory, "data", "kalkulacie.db");
 
 for (var i = 0; i < args.Length; i++)
 {
@@ -26,7 +24,7 @@ for (var i = 0; i < args.Length; i++)
         case "--help" or "-h":
             Console.WriteLine("Použitie: Kalkulacie.Import [--source <cesta>] [--db <cesta>]");
             Console.WriteLine($"  --source  Priečinok s DBF súbormi (default: {sourceDir})");
-            Console.WriteLine($"  --db      Cesta k SQLite databáze   (default: <LocalAppData>\\Kalkulacie\\kalkulacie.db)");
+            Console.WriteLine($"  --db      Cesta k SQLite databáze   (default: data\\kalkulacie.db vedľa .exe)");
             return 0;
     }
 }
