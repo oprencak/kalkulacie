@@ -16,7 +16,8 @@ public sealed class DbfReader
     public IReadOnlyList<DbfRecord> ReadRecords(string path)
     {
         using var stream = File.OpenRead(path);
-        var table = ReadTable(path, stream);
+        var table = ReadTable(path, stream, out var languageDriverId);
+        var decode = ResolveDecoder(languageDriverId);
 
         if (stream.Position < table.HeaderLength)
             stream.Seek(table.HeaderLength, SeekOrigin.Begin);
@@ -33,7 +34,7 @@ public sealed class DbfReader
             var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var field in table.Fields)
             {
-                values[field.Name] = DecodeValue(buffer.AsSpan(field.Offset, field.Length), field.Type);
+                values[field.Name] = DecodeValue(buffer.AsSpan(field.Offset, field.Length), field.Type, decode);
             }
             records.Add(new DbfRecord(false, values));
         }
@@ -41,10 +42,11 @@ public sealed class DbfReader
         return records;
     }
 
-    private DbfTable ReadTable(string path, Stream stream)
+    private DbfTable ReadTable(string path, Stream stream, out byte languageDriverId)
     {
         Span<byte> header = stackalloc byte[32];
         ReadExactly(stream, header);
+        languageDriverId = header[29];
 
         var version = header[0];
         var recordCount = BinaryPrimitives.ReadInt32LittleEndian(header[4..8]);
@@ -76,13 +78,48 @@ public sealed class DbfReader
             new DateOnly(year, month, day), fields);
     }
 
-    private string DecodeValue(ReadOnlySpan<byte> value, char type)
+    private delegate string Decoder(ReadOnlySpan<byte> bytes);
+
+    private static string DecodeValue(ReadOnlySpan<byte> value, char type, Decoder decode)
     {
         var trimmed = Trim(value);
         if (trimmed.IsEmpty) return string.Empty;
         return type is 'N' or 'F' or 'B' or 'Y' or 'D' or 'L'
             ? Encoding.ASCII.GetString(trimmed)
-            : _encoding.GetString(trimmed);
+            : decode(trimmed);
+    }
+
+    /// <summary>
+    /// Kódovanie podľa Language Driver ID v hlavičke DBF (bajt 29).
+    /// Pôvodná aplikácia má tabuľky v rôznych kódovaniach (napr. VYROBKY.DBF v Kamenickom,
+    /// ostatné vo Windows-1250), preto sa kódovanie určuje pre každý súbor zvlášť.
+    /// </summary>
+    private Decoder ResolveDecoder(byte languageDriverId) => languageDriverId switch
+    {
+        0x68 => DecodeKamenicky,                                    // Kamenický (MS-DOS 895)
+        0x64 => bytes => Encoding.GetEncoding(852).GetString(bytes),  // Eastern European MS-DOS
+        0xC8 => bytes => Encoding.GetEncoding(1250).GetString(bytes), // Eastern European Windows
+        0x01 => bytes => Encoding.GetEncoding(437).GetString(bytes),  // US MS-DOS
+        _ => bytes => _encoding.GetString(bytes),
+    };
+
+    // Kamenický (CP895): 0x80–0xAF sú česko-slovenské znaky, zvyšok je zhodný s CP437.
+    private const string KamenickyHigh =
+        "ČüéďäĎŤčěĚĹÍľĺÄÁ" +   // 0x80–0x8F
+        "ÉžŽôöÓůÚýÖÜŠĽÝŘť" +   // 0x90–0x9F
+        "áíóúňŇŮÔšřŕŔ¼§«»";    // 0xA0–0xAF
+
+    private static string DecodeKamenicky(ReadOnlySpan<byte> bytes)
+    {
+        var cp437 = Encoding.GetEncoding(437);
+        var sb = new StringBuilder(bytes.Length);
+        foreach (var b in bytes)
+        {
+            if (b < 0x80) sb.Append((char)b);
+            else if (b < 0xB0) sb.Append(KamenickyHigh[b - 0x80]);
+            else sb.Append(cp437.GetString([b]));
+        }
+        return sb.ToString();
     }
 
     private string ReadNullTerminated(ReadOnlySpan<byte> bytes)
