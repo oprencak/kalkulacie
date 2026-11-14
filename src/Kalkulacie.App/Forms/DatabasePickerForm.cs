@@ -3,7 +3,7 @@ using System.Diagnostics;
 namespace Kalkulacie.App.Forms;
 
 /// <summary>Výber, vytvorenie a mazanie databáz v priečinku <see cref="AppDb.DataDir"/>.</summary>
-public class DatabasePickerForm : Form
+public class DatabasePickerForm : AppForm
 {
     private readonly ListBox lstDatabases = new();
     private readonly Button btnOpen = new();

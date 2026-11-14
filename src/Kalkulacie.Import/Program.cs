@@ -140,6 +140,8 @@ void ImportProducts(string fileName, CalculationMode mode)
 int ImportComposition(string fileName, CalculationMode mode)
 {
     var count = 0;
+    // Poradie riadkov v zložení = poradie záznamov v DBF
+    var positions = new Dictionary<Product, int>();
     foreach (var r in ReadDbf(reader, sourceDir, fileName))
     {
         var productName = r.GetValue("NAZOV_VYR") ?? "";
@@ -175,6 +177,7 @@ int ImportComposition(string fileName, CalculationMode mode)
         }
         else { skipped++; continue; }
 
+        row.Position = positions[product] = positions.GetValueOrDefault(product) + 1;
         db.CompositionRows.Add(row);
         count++;
     }

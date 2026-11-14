@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Kalkulacie.App.Forms;
 
-public partial class ProductsForm : Form
+public partial class ProductsForm : AppForm
 {
     private readonly KalkulacieDbContext _db;
     private BindingSource _bindingSource = new();
@@ -33,18 +33,29 @@ public partial class ProductsForm : Form
         grid.Columns["Mode"].HeaderText = "Typ";
     }
 
-    private void RefreshList()
+    /// <summary>Znovu načíta výrobky podľa filtra typu a hľadania; ponechá (alebo nastaví) vybraný výrobok.</summary>
+    private void RefreshList(int? selectId = null)
     {
+        selectId ??= (_bindingSource.Current as Product)?.Id;
+
         _db.ChangeTracker.Clear();
         _db.Products.Load();
 
-        var all = _db.Products.Local.ToList();
-        var filtered = rdManual.Checked ? all.Where(p => p.Mode == CalculationMode.Manual).ToList()
-                     : rdAutomatic.Checked ? all.Where(p => p.Mode == CalculationMode.Automatic).ToList()
-                     : all;
+        var term = txtSearch.Text.Trim();
+        var filtered = _db.Products.Local
+            .Where(p => !rdManual.Checked || p.Mode == CalculationMode.Manual)
+            .Where(p => !rdAutomatic.Checked || p.Mode == CalculationMode.Automatic)
+            .Where(p => TextSearch.Matches(p.Name, term))
+            .OrderBy(p => p.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
 
         _bindingSource.DataSource = filtered;
+
+        var index = filtered.FindIndex(p => p.Id == selectId);
+        if (index >= 0) _bindingSource.Position = index;
     }
+
+    private void txtSearch_TextChanged(object sender, EventArgs e) => RefreshList();
 
     private void rdFilter_CheckedChanged(object sender, EventArgs e)
     {
@@ -58,9 +69,7 @@ public partial class ProductsForm : Form
         var product = new Product { Name = "Nový výrobok", Mode = mode };
         _db.Products.Add(product);
         _db.SaveChanges();
-        var id = product.Id;
-        RefreshList();
-        OpenDetail(id);
+        OpenDetail(product.Id);
     }
 
     private void btnDetail_Click(object sender, EventArgs e)
@@ -102,6 +111,7 @@ public partial class ProductsForm : Form
             clone.CompositionRows.Add(new Core.Entities.CompositionRow
             {
                 RowType    = row.RowType,
+                Position   = row.Position,
                 MaterialId = row.MaterialId,
                 OperationId = row.OperationId,
                 DimensionA = row.DimensionA,
@@ -112,7 +122,6 @@ public partial class ProductsForm : Form
 
         _db.Products.Add(clone);
         _db.SaveChanges();
-        RefreshList();
         OpenDetail(clone.Id);
     }
 
@@ -126,7 +135,7 @@ public partial class ProductsForm : Form
     {
         using var form = new ProductDetailForm(productId);
         form.ShowDialog(this);
-        RefreshList();
+        RefreshList(productId);
     }
 
     protected override void OnFormClosed(FormClosedEventArgs e)

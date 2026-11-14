@@ -15,7 +15,7 @@ namespace Kalkulacie.Core.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.30");
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.34");
 
             modelBuilder.Entity("Kalkulacie.Core.Entities.CompositionRow", b =>
                 {
@@ -33,6 +33,9 @@ namespace Kalkulacie.Core.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("OperationId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Position")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ProductId")
@@ -97,6 +100,46 @@ namespace Kalkulacie.Core.Migrations
                     b.HasIndex("Name");
 
                     b.ToTable("Operations");
+                });
+
+            modelBuilder.Entity("Kalkulacie.Core.Entities.PricingSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("AreaMaterialAutomatic")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("AreaMaterialManual")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("MarginAutomatic")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("MarginManual")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("PieceMaterial")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("RoundingDecimals")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PricingSettings");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            AreaMaterialAutomatic = 1.05m,
+                            AreaMaterialManual = 1.15m,
+                            MarginAutomatic = 1.08m,
+                            MarginManual = 1.15m,
+                            PieceMaterial = 1.03m,
+                            RoundingDecimals = 3
+                        });
                 });
 
             modelBuilder.Entity("Kalkulacie.Core.Entities.Product", b =>

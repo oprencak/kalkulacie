@@ -18,10 +18,12 @@ partial class MainForm
         this.separator = new Label();
         this.btnMaterials = new Button();
         this.btnOperations = new Button();
+        this.btnSettings = new Button();
         this.components = new System.ComponentModel.Container();
         this.separator2 = new Label();
         this.lblDb = new Label();
         this.btnChangeDb = new Button();
+        this.lblVersion = new Label();
         this.toolTip = new ToolTip(this.components);
         this.SuspendLayout();
 
@@ -58,6 +60,13 @@ partial class MainForm
         this.btnOperations.Text = "Réžia / Práca";
         this.btnOperations.Font = new Font("Segoe UI", 11F);
         this.btnOperations.Click += new EventHandler(this.btnOperations_Click);
+        row += gap;
+
+        this.btnSettings.Location = new Point(x, row);
+        this.btnSettings.Size = new Size(w, h);
+        this.btnSettings.Text = "Koeficienty";
+        this.btnSettings.Font = new Font("Segoe UI", 11F);
+        this.btnSettings.Click += new EventHandler(this.btnSettings_Click);
         row += gap + 10;
 
         this.separator2.Location = new Point(x, row);
@@ -76,19 +85,28 @@ partial class MainForm
         this.btnChangeDb.Text = "Zmeniť databázu…";
         this.btnChangeDb.Font = new Font("Segoe UI", 9F);
         this.btnChangeDb.Click += new EventHandler(this.btnChangeDb_Click);
-        row += 30;
+        row += 30 + 8;
+
+        this.lblVersion.Location = new Point(x, row);
+        this.lblVersion.Size = new Size(w, 16);
+        this.lblVersion.Font = new Font("Segoe UI", 8F);
+        this.lblVersion.ForeColor = SystemColors.GrayText;
+        this.lblVersion.TextAlign = ContentAlignment.MiddleCenter;
+        row += 16;
 
         this.AutoScaleDimensions = new SizeF(7F, 15F);
         this.AutoScaleMode = AutoScaleMode.Font;
-        this.ClientSize = new Size(300, row + 20);
+        this.ClientSize = new Size(300, row + 12);
         this.Controls.Add(this.separator2);
         this.Controls.Add(this.lblDb);
         this.Controls.Add(this.btnChangeDb);
+        this.Controls.Add(this.lblVersion);
         this.Controls.Add(this.btnKalkulacie);
         this.Controls.Add(this.btnProducts);
         this.Controls.Add(this.separator);
         this.Controls.Add(this.btnMaterials);
         this.Controls.Add(this.btnOperations);
+        this.Controls.Add(this.btnSettings);
         this.FormBorderStyle = FormBorderStyle.FixedSingle;
         this.MaximizeBox = false;
         this.Name = "MainForm";
@@ -102,6 +120,8 @@ partial class MainForm
     private Label separator;
     private Button btnMaterials;
     private Button btnOperations;
+    private Button btnSettings;
+    private Label lblVersion;
     private Label separator2;
     private Label lblDb;
     private Button btnChangeDb;

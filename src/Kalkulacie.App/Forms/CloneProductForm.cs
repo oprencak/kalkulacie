@@ -1,6 +1,6 @@
 namespace Kalkulacie.App.Forms;
 
-public partial class CloneProductForm : Form
+public partial class CloneProductForm : AppForm
 {
     public string NewName => txtName.Text;
 

@@ -1,6 +1,6 @@
 namespace Kalkulacie.App.Forms;
 
-public partial class MainForm : Form
+public partial class MainForm : AppForm
 {
     public MainForm()
     {
@@ -11,8 +11,15 @@ public partial class MainForm : Form
     private void UpdateDbInfo()
     {
         Text = $"Kalkulácie — {AppDb.DbName}";
+        lblVersion.Text = $"Verzia {AppInfo.Version}";
         lblDb.Text = $"Databáza: {AppDb.DbName}";
         toolTip.SetToolTip(lblDb, AppDb.DbPath);
+
+        if (AppDb.BackupError is not null)
+        {
+            lblDb.Text += " — záloha zlyhala!";
+            toolTip.SetToolTip(lblDb, $"{AppDb.DbPath}\nAutomatická záloha zlyhala: {AppDb.BackupError}");
+        }
     }
 
     private void btnChangeDb_Click(object sender, EventArgs e)
@@ -50,6 +57,12 @@ public partial class MainForm : Form
     private void btnMaterials_Click(object sender, EventArgs e)
     {
         using var form = new MaterialsForm();
+        form.ShowDialog(this);
+    }
+
+    private void btnSettings_Click(object sender, EventArgs e)
+    {
+        using var form = new PricingSettingsForm();
         form.ShowDialog(this);
     }
 

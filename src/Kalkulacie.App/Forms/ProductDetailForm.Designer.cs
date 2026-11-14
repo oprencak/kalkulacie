@@ -23,13 +23,13 @@ partial class ProductDetailForm
         this.btnAddOperation = new Button();
         this.btnEditRow = new Button();
         this.btnDeleteRow = new Button();
+        this.btnMoveUp = new Button();
+        this.btnMoveDown = new Button();
         this.panelSummary = new Panel();
         this.lblMaterialTotal = new Label();
         this.lblOperationTotal = new Label();
         this.lblUvn = new Label();
         this.lblBasePrice = new Label();
-        this.lblPrice1 = new Label();
-        this.lblPrice2 = new Label();
         ((System.ComponentModel.ISupportInitialize)(this.gridRows)).BeginInit();
         this.panelSummary.SuspendLayout();
         this.SuspendLayout();
@@ -55,14 +55,14 @@ partial class ProductDetailForm
 
         // btnSave
         this.btnSave.Location = new Point(580, 11);
-        this.btnSave.Size = new Size(90, 25);
-        this.btnSave.Text = "Uložiť";
+        this.btnSave.Size = new Size(110, 25);
+        this.btnSave.Text = "Uložiť názov";
         this.btnSave.Click += new EventHandler(this.btnSave_Click);
 
         // gridRows
         this.gridRows.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
         this.gridRows.Location = new Point(12, 50);
-        this.gridRows.Size = new Size(658, 320);
+        this.gridRows.Size = new Size(858, 320);
         this.gridRows.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         this.gridRows.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         this.gridRows.ReadOnly = true;
@@ -97,17 +97,29 @@ partial class ProductDetailForm
         this.btnDeleteRow.Text = "Vymazať";
         this.btnDeleteRow.Click += new EventHandler(this.btnDeleteRow_Click);
 
+        // btnMoveUp
+        this.btnMoveUp.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+        this.btnMoveUp.Location = new Point(446, 382);
+        this.btnMoveUp.Size = new Size(80, 28);
+        this.btnMoveUp.Text = "▲ Hore";
+        this.btnMoveUp.Click += new EventHandler(this.btnMoveUp_Click);
+
+        // btnMoveDown
+        this.btnMoveDown.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+        this.btnMoveDown.Location = new Point(534, 382);
+        this.btnMoveDown.Size = new Size(80, 28);
+        this.btnMoveDown.Text = "▼ Dole";
+        this.btnMoveDown.Click += new EventHandler(this.btnMoveDown_Click);
+
         // panelSummary
         this.panelSummary.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
         this.panelSummary.BorderStyle = BorderStyle.FixedSingle;
         this.panelSummary.Location = new Point(12, 420);
-        this.panelSummary.Size = new Size(658, 120);
+        this.panelSummary.Size = new Size(858, 120);
         this.panelSummary.Controls.Add(this.lblMaterialTotal);
         this.panelSummary.Controls.Add(this.lblOperationTotal);
         this.panelSummary.Controls.Add(this.lblUvn);
         this.panelSummary.Controls.Add(this.lblBasePrice);
-        this.panelSummary.Controls.Add(this.lblPrice1);
-        this.panelSummary.Controls.Add(this.lblPrice2);
 
         var summaryFont = new Font("Courier New", 9F);
 
@@ -127,18 +139,10 @@ partial class ProductDetailForm
         this.lblBasePrice.Size = new Size(300, 18);
         this.lblBasePrice.Font = new Font("Courier New", 9F, FontStyle.Bold);
 
-        this.lblPrice1.Location = new Point(340, 8);
-        this.lblPrice1.Size = new Size(300, 18);
-        this.lblPrice1.Font = summaryFont;
-
-        this.lblPrice2.Location = new Point(340, 28);
-        this.lblPrice2.Size = new Size(300, 18);
-        this.lblPrice2.Font = summaryFont;
-
         // ProductDetailForm
         this.AutoScaleDimensions = new SizeF(7F, 15F);
         this.AutoScaleMode = AutoScaleMode.Font;
-        this.ClientSize = new Size(682, 552);
+        this.ClientSize = new Size(882, 552);
         this.Controls.Add(this.lblNameLabel);
         this.Controls.Add(this.txtName);
         this.Controls.Add(this.lblModeLabel);
@@ -149,6 +153,8 @@ partial class ProductDetailForm
         this.Controls.Add(this.btnAddOperation);
         this.Controls.Add(this.btnEditRow);
         this.Controls.Add(this.btnDeleteRow);
+        this.Controls.Add(this.btnMoveUp);
+        this.Controls.Add(this.btnMoveDown);
         this.Controls.Add(this.panelSummary);
         this.MinimumSize = new Size(600, 500);
         this.Name = "ProductDetailForm";
@@ -170,11 +176,11 @@ partial class ProductDetailForm
     private Button btnAddOperation;
     private Button btnEditRow;
     private Button btnDeleteRow;
+    private Button btnMoveUp;
+    private Button btnMoveDown;
     private Panel panelSummary;
     private Label lblMaterialTotal;
     private Label lblOperationTotal;
     private Label lblUvn;
     private Label lblBasePrice;
-    private Label lblPrice1;
-    private Label lblPrice2;
 }

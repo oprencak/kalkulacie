@@ -17,6 +17,13 @@ public static class AppDb
 
     public static string? DbPath { get; private set; }
 
+    private const int BackupsToKeep = 10;
+
+    public static string BackupDir { get; } = Path.Combine(DataDir, "zalohy");
+
+    /// <summary>Chyba poslednej automatickej zálohy, alebo null, ak prebehla v poriadku.</summary>
+    public static string? BackupError { get; private set; }
+
     /// <summary>Názov aktívnej databázy (bez prípony) na zobrazenie.</summary>
     public static string DbName => DbPath is null ? "" : Path.GetFileNameWithoutExtension(DbPath);
 
@@ -132,6 +139,48 @@ public static class AppDb
         }
     }
 
+    /// <summary>
+    /// Zálohuje DB do data\zalohy pred jej otvorením (teda aj pred migráciou). Preskočí sa,
+    /// ak sa DB od poslednej zálohy nezmenila; ponecháva sa posledných <see cref="BackupsToKeep"/> záloh.
+    /// Zlyhanie zálohy neblokuje otvorenie DB — chyba ostane v <see cref="BackupError"/>.
+    /// </summary>
+    private static void Backup(string path)
+    {
+        BackupError = null;
+        try
+        {
+            if (!File.Exists(path)) return;
+            Directory.CreateDirectory(BackupDir);
+
+            var name = Path.GetFileNameWithoutExtension(path);
+            var existing = Directory.GetFiles(BackupDir, $"{name}_????????_??????.db")
+                .Where(f => Path.GetFileName(f).Length == name.Length + "_yyyyMMdd_HHmmss.db".Length)
+                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var changed = new[] { path, path + "-wal" }.Where(File.Exists).Max(File.GetLastWriteTimeUtc);
+            if (existing.Count > 0 && File.GetLastWriteTimeUtc(existing[^1]) >= changed) return;
+
+            var target = Path.Combine(BackupDir, $"{name}_{DateTime.Now:yyyyMMdd_HHmmss}.db");
+            using (var source = new SqliteConnection($"Data Source={path}"))
+            using (var dest = new SqliteConnection($"Data Source={target}"))
+            {
+                source.Open();
+                dest.Open();
+                source.BackupDatabase(dest);
+            }
+            SqliteConnection.ClearAllPools();
+
+            existing.Add(target);
+            foreach (var old in existing.Take(Math.Max(0, existing.Count - BackupsToKeep)))
+                File.Delete(old);
+        }
+        catch (Exception ex)
+        {
+            BackupError = ex.Message;
+        }
+    }
+
     /// <summary>Prepne aplikáciu na zadanú DB a aplikuje migrácie.</summary>
     public static void Open(string path)
     {
@@ -139,6 +188,7 @@ public static class AppDb
         SqliteConnection.ClearAllPools();
 
         DbPath = Path.GetFullPath(path);
+        Backup(DbPath);
         using (var db = CreateContext())
             db.Database.Migrate();
 

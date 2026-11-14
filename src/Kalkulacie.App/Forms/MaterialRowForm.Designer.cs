@@ -13,7 +13,8 @@ partial class MaterialRowForm
 
     private void InitializeComponent()
     {
-        this.cmbMaterial = new ComboBox();
+        this.txtSearch = new TextBox();
+        this.lstMaterial = new ListBox();
         this.rdArea = new RadioButton();
         this.rdPiece = new RadioButton();
         this.lblA = new Label();
@@ -30,7 +31,7 @@ partial class MaterialRowForm
         ((System.ComponentModel.ISupportInitialize)(this.numQty)).BeginInit();
         this.SuspendLayout();
 
-        int col1 = 12, col2 = 100, w2 = 200, row = 14, step = 34;
+        int col1 = 12, col2 = 100, w2 = 300, row = 14, step = 34;
 
         // lblMaterial
         this.lblMaterial.Location = new Point(col1, row);
@@ -38,11 +39,19 @@ partial class MaterialRowForm
         this.lblMaterial.Text = "Materiál:";
         this.lblMaterial.TextAlign = ContentAlignment.MiddleLeft;
 
-        // cmbMaterial
-        this.cmbMaterial.Location = new Point(col2, row);
-        this.cmbMaterial.Size = new Size(w2, 23);
-        this.cmbMaterial.DropDownStyle = ComboBoxStyle.DropDownList;
-        row += step;
+        // txtSearch — filtruje zoznam pod sebou
+        this.txtSearch.Location = new Point(col2, row);
+        this.txtSearch.Size = new Size(w2, 23);
+        this.txtSearch.PlaceholderText = "Hľadať...";
+        this.txtSearch.TextChanged += new EventHandler(this.txtSearch_TextChanged);
+        this.txtSearch.KeyDown += new KeyEventHandler(this.txtSearch_KeyDown);
+        row += 28;
+
+        this.lstMaterial.Location = new Point(col2, row);
+        this.lstMaterial.Size = new Size(w2, 154);
+        this.lstMaterial.IntegralHeight = false;
+        this.lstMaterial.DoubleClick += new EventHandler(this.btnOk_Click);
+        row += 154 + 11;
 
         // rdPiece / rdArea
         this.rdPiece.Location = new Point(col2, row);
@@ -111,9 +120,9 @@ partial class MaterialRowForm
         this.CancelButton = this.btnCancel;
         this.AutoScaleDimensions = new SizeF(7F, 15F);
         this.AutoScaleMode = AutoScaleMode.Font;
-        this.ClientSize = new Size(320, row + 50);
+        this.ClientSize = new Size(420, row + 50);
         this.Controls.AddRange(new Control[] {
-            lblMaterial, cmbMaterial, rdPiece, rdArea,
+            lblMaterial, txtSearch, lstMaterial, rdPiece, rdArea,
             lblA, numA, lblB, numB, lblQty, numQty,
             btnOk, btnCancel
         });
@@ -129,7 +138,8 @@ partial class MaterialRowForm
         this.ResumeLayout(false);
     }
 
-    private ComboBox cmbMaterial;
+    private TextBox txtSearch;
+    private ListBox lstMaterial;
     private RadioButton rdArea;
     private RadioButton rdPiece;
     private Label lblA, lblB, lblQty, lblMaterial;

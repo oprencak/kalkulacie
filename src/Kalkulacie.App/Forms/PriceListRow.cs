@@ -6,7 +6,5 @@ public record PriceListRow(
     decimal Materiál,
     decimal Práca,
     decimal UVN,
-    decimal Cena,
-    decimal Cena8,
-    decimal Cena16
+    decimal Cena
 );

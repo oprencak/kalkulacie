@@ -21,6 +21,8 @@ partial class ProductsForm
         this.rdAll = new RadioButton();
         this.rdManual = new RadioButton();
         this.rdAutomatic = new RadioButton();
+        this.lblSearch = new Label();
+        this.txtSearch = new TextBox();
         ((System.ComponentModel.ISupportInitialize)(this.grid)).BeginInit();
         this.SuspendLayout();
 
@@ -42,6 +44,17 @@ partial class ProductsForm
         this.rdAutomatic.Size = new Size(80, 23);
         this.rdAutomatic.Text = "Automat";
         this.rdAutomatic.CheckedChanged += new EventHandler(this.rdFilter_CheckedChanged);
+
+        // lblSearch
+        this.lblSearch.Location = new Point(270, 14);
+        this.lblSearch.Size = new Size(55, 23);
+        this.lblSearch.Text = "Hľadať:";
+        this.lblSearch.TextAlign = ContentAlignment.MiddleLeft;
+
+        // txtSearch
+        this.txtSearch.Location = new Point(328, 14);
+        this.txtSearch.Size = new Size(250, 23);
+        this.txtSearch.TextChanged += new EventHandler(this.txtSearch_TextChanged);
 
         // grid
         this.grid.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
@@ -88,6 +101,8 @@ partial class ProductsForm
         this.Controls.Add(this.rdAll);
         this.Controls.Add(this.rdManual);
         this.Controls.Add(this.rdAutomatic);
+        this.Controls.Add(this.lblSearch);
+        this.Controls.Add(this.txtSearch);
         this.Controls.Add(this.grid);
         this.Controls.Add(this.btnAdd);
         this.Controls.Add(this.btnDetail);
@@ -99,6 +114,7 @@ partial class ProductsForm
         this.Text = "Výrobky";
         ((System.ComponentModel.ISupportInitialize)(this.grid)).EndInit();
         this.ResumeLayout(false);
+        this.PerformLayout();
     }
 
     private DataGridView grid;
@@ -109,4 +125,6 @@ partial class ProductsForm
     private RadioButton rdAll;
     private RadioButton rdManual;
     private RadioButton rdAutomatic;
+    private Label lblSearch;
+    private TextBox txtSearch;
 }

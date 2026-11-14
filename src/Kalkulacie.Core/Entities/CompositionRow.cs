@@ -11,6 +11,9 @@ public class CompositionRow
 
     public RowType RowType { get; set; }
 
+    /// <summary>Poradie riadku v zložení výrobku (1, 2, 3…).</summary>
+    public int Position { get; set; }
+
     // Materiálový riadok
     public int? MaterialId { get; set; }
     public Material? Material { get; set; }

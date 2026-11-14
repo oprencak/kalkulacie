@@ -3,9 +3,10 @@ using Kalkulacie.Core.Entities;
 
 namespace Kalkulacie.App.Forms;
 
-public partial class MaterialRowForm : Form
+public partial class MaterialRowForm : AppForm
 {
     private readonly KalkulacieDbContext _db;
+    private List<Material> _all = [];
 
     public Material? SelectedMaterial { get; private set; }
     public bool IsArea { get; private set; }
@@ -22,15 +23,16 @@ public partial class MaterialRowForm : Form
 
     private void OnLoad(CompositionRow? existing)
     {
-        var materials = _db.Materials.OrderBy(m => m.Name).ToList();
-        cmbMaterial.DataSource = materials;
-        cmbMaterial.DisplayMember = "Name";
-        cmbMaterial.ValueMember = "Id";
+        _all = _db.Materials.AsEnumerable()
+            .OrderBy(m => m.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+        lstMaterial.DisplayMember = "Name";
+        ApplyFilter(existing?.MaterialId);
+        ActiveControl = txtSearch;
 
         if (existing != null)
         {
             Text = "Upraviť materiálový riadok";
-            cmbMaterial.SelectedValue = existing.MaterialId;
             bool area = existing.DimensionA.HasValue || existing.DimensionB.HasValue;
             rdArea.Checked = area;
             rdPiece.Checked = !area;
@@ -60,9 +62,32 @@ public partial class MaterialRowForm : Form
 
     private void rdArea_CheckedChanged(object sender, EventArgs e) => UpdateDimVisibility();
 
+    /// <summary>Zobrazí položky vyhovujúce hľadaniu; ponechá (alebo nastaví) vybranú položku.</summary>
+    private void ApplyFilter(int? selectId = null)
+    {
+        selectId ??= (lstMaterial.SelectedItem as Material)?.Id;
+        var term = txtSearch.Text.Trim();
+        var items = _all.Where(x => TextSearch.Matches(x.Name, term)).ToList();
+
+        lstMaterial.DataSource = items;
+        var index = items.FindIndex(x => x.Id == selectId);
+        lstMaterial.SelectedIndex = index >= 0 ? index : (items.Count > 0 ? 0 : -1);
+    }
+
+    private void txtSearch_TextChanged(object sender, EventArgs e) => ApplyFilter();
+
+    // Šípky hore/dole v hľadaní posúvajú výber v zozname
+    private void txtSearch_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.KeyCode is not (Keys.Down or Keys.Up)) return;
+        int index = lstMaterial.SelectedIndex + (e.KeyCode == Keys.Down ? 1 : -1);
+        if (index >= 0 && index < lstMaterial.Items.Count) lstMaterial.SelectedIndex = index;
+        e.Handled = true;
+    }
+
     private void btnOk_Click(object sender, EventArgs e)
     {
-        if (cmbMaterial.SelectedItem is not Material mat)
+        if (lstMaterial.SelectedItem is not Material mat)
         {
             MessageBox.Show("Vyberte materiál.", "Chyba", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
