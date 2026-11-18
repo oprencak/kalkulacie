@@ -1,3 +1,5 @@
+using Kalkulacie.App.Update;
+
 namespace Kalkulacie.App.Forms;
 
 public partial class MainForm : AppForm
@@ -6,6 +8,35 @@ public partial class MainForm : AppForm
     {
         InitializeComponent();
         UpdateDbInfo();
+        Shown += async (_, _) => await CheckForUpdateAsync();
+    }
+
+    private ReleaseInfo? _release;
+
+    /// <summary>
+    /// Na pozadí zistí, či je na GitHube novšia verzia. Štart nezdržuje; bez internetu alebo pri chybe
+    /// sa nestane nič.
+    /// </summary>
+    private async Task CheckForUpdateAsync()
+    {
+        var release = await Task.Run(() => Updater.CheckAsync());
+        if (release is null || IsDisposed) return;
+
+        _release = release;
+        lblUpdate.Text = $"Nová verzia {release.Version.ToString(3)} je dostupná";
+        if (!pnlUpdate.Visible)
+        {
+            pnlUpdate.Visible = true;
+            ClientSize = new Size(ClientSize.Width, pnlUpdate.Bottom + 12);
+        }
+    }
+
+    private void btnUpdate_Click(object sender, EventArgs e)
+    {
+        if (_release is null) return;
+        using var form = new UpdateForm(_release);
+        if (form.ShowDialog(this) == DialogResult.OK)
+            Application.Exit(); // nová verzia sa už spúšťa a čaká na skončenie tejto
     }
 
     private void UpdateDbInfo()

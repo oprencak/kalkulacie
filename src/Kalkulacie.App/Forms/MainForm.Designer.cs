@@ -24,6 +24,9 @@ partial class MainForm
         this.lblDb = new Label();
         this.btnChangeDb = new Button();
         this.lblVersion = new Label();
+        this.pnlUpdate = new Panel();
+        this.lblUpdate = new Label();
+        this.btnUpdate = new Button();
         this.toolTip = new ToolTip(this.components);
         this.SuspendLayout();
 
@@ -94,6 +97,24 @@ partial class MainForm
         this.lblVersion.TextAlign = ContentAlignment.MiddleCenter;
         row += 16;
 
+        // Ponuka novej verzie — skrytá, zobrazí ju MainForm.ShowUpdate (okno sa vtedy zväčší)
+        this.pnlUpdate.Location = new Point(x - 10, row + 8);
+        this.pnlUpdate.Size = new Size(w + 20, 64);
+        this.pnlUpdate.BackColor = Color.FromArgb(255, 244, 206);
+        this.pnlUpdate.Visible = false;
+        this.pnlUpdate.Controls.Add(this.lblUpdate);
+        this.pnlUpdate.Controls.Add(this.btnUpdate);
+
+        this.lblUpdate.Location = new Point(8, 6);
+        this.lblUpdate.Size = new Size(w + 4, 20);
+        this.lblUpdate.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+
+        this.btnUpdate.Location = new Point(8, 28);
+        this.btnUpdate.Size = new Size(w + 4, 28);
+        this.btnUpdate.Text = "Aktualizovať…";
+        this.btnUpdate.Font = new Font("Segoe UI", 9F);
+        this.btnUpdate.Click += new EventHandler(this.btnUpdate_Click);
+
         this.AutoScaleDimensions = new SizeF(7F, 15F);
         this.AutoScaleMode = AutoScaleMode.Font;
         this.ClientSize = new Size(300, row + 12);
@@ -101,6 +122,7 @@ partial class MainForm
         this.Controls.Add(this.lblDb);
         this.Controls.Add(this.btnChangeDb);
         this.Controls.Add(this.lblVersion);
+        this.Controls.Add(this.pnlUpdate);
         this.Controls.Add(this.btnKalkulacie);
         this.Controls.Add(this.btnProducts);
         this.Controls.Add(this.separator);
@@ -122,6 +144,9 @@ partial class MainForm
     private Button btnOperations;
     private Button btnSettings;
     private Label lblVersion;
+    private Panel pnlUpdate;
+    private Label lblUpdate;
+    private Button btnUpdate;
     private Label separator2;
     private Label lblDb;
     private Button btnChangeDb;

@@ -100,7 +100,7 @@ public partial class PriceListForm : AppForm
                 col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             }
         }
-        grid.Columns["Výrobok"].FillWeight = 300;
+        grid.Columns["Výrobok"]!.FillWeight = 300;
         grid.Invalidate();
     }
 
@@ -198,7 +198,7 @@ public partial class PriceListForm : AppForm
             var values = FormatValues(r, NumberFormat);
             sb.Append("<tr>");
             for (int i = 0; i < values.Length; i++)
-                sb.Append(Columns[i].Align == StringAlignment.Far
+                sb.Append(Columns[i]!.Align == StringAlignment.Far
                     ? $"<td class='r'>{values[i]}</td>"
                     : $"<td>{Encode(values[i])}</td>");
             sb.AppendLine("</tr>");
@@ -247,10 +247,10 @@ public partial class PriceListForm : AppForm
         float x = bounds.Left;
         for (int i = 0; i < Columns.Length; i++)
         {
-            using var fmt = new StringFormat { Alignment = Columns[i].Align, LineAlignment = StringAlignment.Center };
+            using var fmt = new StringFormat { Alignment = Columns[i]!.Align, LineAlignment = StringAlignment.Center };
             var rect = new RectangleF(x, y, colWidths[i], rowH);
             g.FillRectangle(Brushes.LightGray, rect);
-            g.DrawString(Columns[i].Header, headerFont, Brushes.Black, rect, fmt);
+            g.DrawString(Columns[i]!.Header, headerFont, Brushes.Black, rect, fmt);
             x += colWidths[i];
         }
         y += rowH;
@@ -275,7 +275,7 @@ public partial class PriceListForm : AppForm
             {
                 using var fmt = new StringFormat
                 {
-                    Alignment = Columns[i].Align,
+                    Alignment = Columns[i]!.Align,
                     LineAlignment = StringAlignment.Center,
                     Trimming = StringTrimming.EllipsisCharacter,
                     FormatFlags = StringFormatFlags.NoWrap,

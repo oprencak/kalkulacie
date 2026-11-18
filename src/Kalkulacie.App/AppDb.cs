@@ -190,7 +190,12 @@ public static class AppDb
         DbPath = Path.GetFullPath(path);
         Backup(DbPath);
         using (var db = CreateContext())
-            db.Database.Migrate();
+        {
+            // Migrate() od EF Core 9 vždy zapíše do DB (zámok migrácií), takže by sa zmenil čas súboru
+            // a pri každom štarte by vznikla nová záloha — volá sa preto len pri čakajúcich migráciách.
+            if (db.Database.GetPendingMigrations().Any())
+                db.Database.Migrate();
+        }
 
         try
         {

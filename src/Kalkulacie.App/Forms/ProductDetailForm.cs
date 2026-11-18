@@ -66,27 +66,27 @@ public partial class ProductDetailForm : AppForm
 
         if (gridRows.Columns.Count > 0)
         {
-            gridRows.Columns["Id"].Visible = false;
-            gridRows.Columns["Typ"].HeaderText = "Typ";
-            gridRows.Columns["Položka"].HeaderText = "Položka";
-            gridRows.Columns["Quantity"].HeaderText = "Množstvo / počet ks";
-            gridRows.Columns["DimensionA"].HeaderText = "Rozmer A";
-            gridRows.Columns["DimensionB"].HeaderText = "Rozmer B";
-            gridRows.Columns["Unit"].HeaderText = "MJ";
-            gridRows.Columns["UnitPrice"].HeaderText = "Cena / sadzba";
-            gridRows.Columns["Cost"].HeaderText = "Náklad";
-            gridRows.Columns["Položka"].FillWeight = 250;
-            gridRows.Columns["Unit"].FillWeight = 50;
+            gridRows.Columns["Id"]!.Visible = false;
+            gridRows.Columns["Typ"]!.HeaderText = "Typ";
+            gridRows.Columns["Položka"]!.HeaderText = "Položka";
+            gridRows.Columns["Quantity"]!.HeaderText = "Množstvo / počet ks";
+            gridRows.Columns["DimensionA"]!.HeaderText = "Rozmer A";
+            gridRows.Columns["DimensionB"]!.HeaderText = "Rozmer B";
+            gridRows.Columns["Unit"]!.HeaderText = "MJ";
+            gridRows.Columns["UnitPrice"]!.HeaderText = "Cena / sadzba";
+            gridRows.Columns["Cost"]!.HeaderText = "Náklad";
+            gridRows.Columns["Položka"]!.FillWeight = 250;
+            gridRows.Columns["Unit"]!.FillWeight = 50;
 
             foreach (var name in new[] { "Quantity", "DimensionA", "DimensionB" })
             {
-                gridRows.Columns[name].DefaultCellStyle.Format = "0.####";
-                gridRows.Columns[name].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+                gridRows.Columns[name]!.DefaultCellStyle.Format = "0.####";
+                gridRows.Columns[name]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             }
             foreach (var name in new[] { "UnitPrice", "Cost" })
             {
-                gridRows.Columns[name].DefaultCellStyle.Format = "N4";
-                gridRows.Columns[name].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+                gridRows.Columns[name]!.DefaultCellStyle.Format = "N4";
+                gridRows.Columns[name]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             }
         }
     }

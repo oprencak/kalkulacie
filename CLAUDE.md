@@ -16,9 +16,10 @@ Kalkulácia nákladovej ceny výrobku zo zloženia (BOM — bill of materials):
 
 | | |
 |---|---|
-| UI | WinForms (.NET 8) |
+| UI | WinForms (.NET 10, `net10.0-windows`; SDK v `global.json`) |
 | Databáza | SQLite — `*.db` v priečinku `data\` vedľa `Kalkulacie.App.exe` (viac DB → výber pri štarte, zmena v hlavnom menu; `AppDb.cs`) |
-| ORM | EF Core 8 (code-first, inkrementálne migrácie) |
+| ORM | EF Core 10 (code-first, inkrementálne migrácie; verzie balíkov pevné, nie `*`) |
+| Distribúcia | jeden samostatný exe (self-contained, bez inštalácie), aktualizácia z GitHub Releases |
 
 Projekty:
 - `src/Kalkulacie.Core` — entity, DbContext, cenové vzorce
@@ -27,6 +28,8 @@ Projekty:
 
 Zálohy: pri každom otvorení DB sa pred migráciou uloží kópia do `data\zalohy\<db>_<yyyyMMdd_HHmmss>.db`
 (len ak sa DB od poslednej zálohy zmenila; drží sa posledných 10 na databázu) — `AppDb.Backup`.
+`Migrate()` sa volá len pri čakajúcich migráciách — od EF Core 9 totiž vždy zapíše do DB (zámok migrácií),
+čím by sa zmenil čas súboru a pri každom štarte by vznikla nová záloha.
 
 ## Databázové entity (čisté, bez legacy polí)
 
@@ -94,6 +97,7 @@ inú prirážku si používateľ nastaví v koeficientoch.
 | Riadok zloženia — réžia (hľadanie + zoznam) | `Forms/OperationRowForm` |
 | Cenník: filter, tlač, HTML náhľad, export CSV | `Forms/PriceListForm` |
 | Koeficienty cenových vzorcov (v percentách) | `Forms/PricingSettingsForm` |
+| Ponuka novej verzie (poznámky, sťahovanie) | `Forms/UpdateForm` |
 
 Verzia a ikona:
 - Verzia je `<Version>` v `Kalkulacie.App.csproj`; zobrazuje sa dole v hlavnom menu (`AppInfo.Version`).
@@ -133,13 +137,53 @@ dotnet run --project src/Kalkulacie.Import -- --source C:\dev\duri\Cennik\DATA -
 
 ## Publish
 
-Samostatný jednosúborový exe do `publish\` (v gite ignorovaný; `publish\data` obsahuje ostré DB — nemazať):
+Všetky nastavenia publishu sú v `Kalkulacie.App.csproj` (win-x64, self-contained, single-file, kompresia,
+natívne dll a symboly vnútri exe) — príkaz nepotrebuje parametre. Výsledok: v `publish\` je len
+`Kalkulacie.App.exe` (~50 MB) a `data\`. Na cieľovom PC sa nič neinštaluje (žiadny .NET runtime).
+Natívna `e_sqlite3.dll` sa pri prvom štarte rozbalí do `%TEMP%\.net\Kalkulacie.App\`.
 
 ```
-dotnet publish src/Kalkulacie.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish
+dotnet publish src/Kalkulacie.App -c Release -o publish
 ```
+
+`publish\` je v gite ignorovaný; `publish\data` obsahuje ostré DB — nemazať.
+
+Čo do exe nejde: balík `Microsoft.EntityFrameworkCore.Design` (`Publish="false"` — priťahuje kompilátor Roslyn,
+treba ho len pre `dotnet ef`), preklady hlášok knižníc (`SatelliteResourceLanguages=en`).
+Trimming sa nepoužíva (WinForms ho nepodporuje).
+
+## Vydanie novej verzie
+
+1. Zvýšiť `<Version>` v `Kalkulacie.App.csproj` a commitnúť.
+2. `.\release.ps1 -Notes "- čo je nové"` (bez `-Notes` = správy commitov od minulého tagu;
+   `-DryRun` = len publish a súhrn, nič sa nepushne).
+
+Skript overí gh CLI a prihlásenie, čistý strom, vetvu master a že tag neexistuje; vyčistí `publish\`
+(okrem `data\`), spraví publish, po potvrdení pushne master, vytvorí tag `vX.Y.Z` a GitHub Release
+s `Kalkulacie.App.exe` a `Kalkulacie.App.exe.sha256`. Potrebuje gh CLI (`winget install --id GitHub.cli`,
+potom `gh auth login`); token musí mať právo zápisu do Contents repa.
+
+## Aktualizácia v aplikácii
+
+`src/Kalkulacie.App/Update/Updater.cs`, UI v `Forms/MainForm` (panel) a `Forms/UpdateForm`. Vlastný kód, bez knižníc.
+
+- Repo je natvrdo `oprencak/kalkulacie` (verejné — aplikácia nepotrebuje token).
+- Po zobrazení hlavného okna sa na pozadí zavolá `GET /repos/oprencak/kalkulacie/releases/latest`
+  (drafty a pre-release sa ignorujú). Tag `vX.Y.Z` > `AppInfo.Version` → v hlavnom menu sa ukáže panel
+  „Nová verzia … je dostupná“ s tlačidlom Aktualizovať. Bez internetu / pri chybe sa nestane nič.
+- Kontrola beží len v publikovanom jednosúborovom exe (nie pri `dotnet run` / z Visual Studia).
+- Sťahuje sa len `https://github.com/oprencak/kalkulacie/releases/download/<tag>/Kalkulacie.App.exe`
+  (adresa sa skladá z pevného repa a overeného tagu). SHA-256 sa overí voči poľu `digest` z GitHub API,
+  prípadne voči súboru `.sha256` z release; nezhoda = súbor sa zmaže, nič sa nemení.
+- Výmena: stiahnuť do `Kalkulacie.App.exe.new` → bežiaci exe premenovať na `.old` → `.new` na jeho miesto →
+  spustiť ho s `--po-aktualizacii <pid>` (počká na skončenie starého procesu, ktorý drží DB) → starý sa ukončí.
+- `.old` ostáva počas prvého behu novej verzie (dá sa vrátiť), zmaže sa pri ďalšom úspešnom štarte.
+- Dialóg upozorňuje, že DB sa pri otvorení zmigruje a staršia verzia ju nemusí otvoriť. Návrat späť = starý exe
+  (`.old` alebo z GitHub Releases) + obnova DB z `data\zalohy` (záloha vzniká pred migráciou).
 
 ## Migrácie (pri zmene entít)
+
+Nástroj `dotnet-ef` je lokálny (`dotnet-tools.json`, verzia zhodná s EF Core); prvýkrát `dotnet tool restore`.
 
 ```
 dotnet ef migrations add NazovMigracie --project src/Kalkulacie.Core --startup-project src/Kalkulacie.App

@@ -23,11 +23,11 @@ public partial class MaterialsForm : AppForm
         RefreshView();
         grid.DataSource = _bindingSource;
 
-        grid.Columns["Id"].Visible = false;
-        grid.Columns["CompositionRows"].Visible = false;
-        grid.Columns["Name"].HeaderText = "Názov";
-        grid.Columns["Unit"].HeaderText = "MJ";
-        grid.Columns["Price"].HeaderText = "Cena";
+        grid.Columns["Id"]!.Visible = false;
+        grid.Columns["CompositionRows"]!.Visible = false;
+        grid.Columns["Name"]!.HeaderText = "Názov";
+        grid.Columns["Unit"]!.HeaderText = "MJ";
+        grid.Columns["Price"]!.HeaderText = "Cena";
     }
 
     /// <summary>

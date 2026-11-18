@@ -1,17 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- Ladiace symboly vnútri dll — vo výslednom exe, nie ako .pdb vedľa neho -->
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.*">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.15">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.15" />
   </ItemGroup>
 
 </Project>

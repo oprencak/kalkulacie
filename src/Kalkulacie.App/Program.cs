@@ -1,12 +1,13 @@
 using System.ComponentModel;
 using Kalkulacie.App.Forms;
+using Kalkulacie.App.Update;
 
 namespace Kalkulacie.App;
 
 static class Program
 {
     [STAThread]
-    static void Main()
+    static void Main(string[] args)
     {
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
         Application.ThreadException += OnThreadException;
@@ -17,6 +18,14 @@ static class Program
         using var splash = new SplashForm();
         splash.ShowStatus("Spúšťam…");
 
+        // Po aktualizácii počkať, kým skončí predchádzajúca verzia (drží otvorenú databázu)
+        bool restartAfterUpdate = Updater.IsRestartAfterUpdate(args);
+        if (restartAfterUpdate)
+        {
+            splash.ShowStatus("Dokončujem aktualizáciu…");
+            Updater.WaitForPreviousInstance(args);
+        }
+
         var dbPath = ChooseDatabaseOnStartup(splash);
         if (dbPath is null) return;
 
@@ -24,7 +33,11 @@ static class Program
         AppDb.Open(dbPath);
 
         var mainForm = new MainForm();
-        mainForm.Shown += (_, _) => splash.Close();
+        mainForm.Shown += (_, _) =>
+        {
+            splash.Close();
+            Updater.CleanupAfterSuccessfulStart(restartAfterUpdate);
+        };
         Application.Run(mainForm);
     }
 

@@ -27,10 +27,10 @@ public partial class ProductsForm : AppForm
         RefreshList();
         if (grid.DataSource == null) grid.DataSource = _bindingSource;
 
-        grid.Columns["Id"].Visible = false;
-        grid.Columns["CompositionRows"].Visible = false;
-        grid.Columns["Name"].HeaderText = "Názov";
-        grid.Columns["Mode"].HeaderText = "Typ";
+        grid.Columns["Id"]!.Visible = false;
+        grid.Columns["CompositionRows"]!.Visible = false;
+        grid.Columns["Name"]!.HeaderText = "Názov";
+        grid.Columns["Mode"]!.HeaderText = "Typ";
     }
 
     /// <summary>Znovu načíta výrobky podľa filtra typu a hľadania; ponechá (alebo nastaví) vybraný výrobok.</summary>

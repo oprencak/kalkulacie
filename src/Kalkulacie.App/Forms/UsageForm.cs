@@ -85,7 +85,7 @@ public class UsageForm : AppForm
 
     private static void SetColumn(DataGridView grid, string name, string header, string? format, int fillWeight = 100)
     {
-        var col = grid.Columns[name];
+        var col = grid.Columns[name]!;
         col.HeaderText = header;
         col.FillWeight = fillWeight;
         if (format is null) return;

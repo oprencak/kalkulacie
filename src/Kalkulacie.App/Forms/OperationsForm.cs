@@ -23,10 +23,10 @@ public partial class OperationsForm : AppForm
         RefreshView();
         grid.DataSource = _bindingSource;
 
-        grid.Columns["Id"].Visible = false;
-        grid.Columns["CompositionRows"].Visible = false;
-        grid.Columns["Name"].HeaderText = "Názov";
-        grid.Columns["Rate"].HeaderText = "Sadzba";
+        grid.Columns["Id"]!.Visible = false;
+        grid.Columns["CompositionRows"]!.Visible = false;
+        grid.Columns["Name"]!.HeaderText = "Názov";
+        grid.Columns["Rate"]!.HeaderText = "Sadzba";
     }
 
     /// <summary>
