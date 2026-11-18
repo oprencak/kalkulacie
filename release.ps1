@@ -8,8 +8,8 @@
       1. overí gh CLI a prihlásenie, čistý pracovný strom, vetvu master a že tag ešte neexistuje,
       2. vyčistí publish\ (okrem priečinka data\) a spustí dotnet publish,
       3. vypočíta SHA-256 exe a vypíše súhrn; po potvrdení
-      4. pushne master, vytvorí a pushne tag vX.Y.Z,
-      5. vytvorí GitHub Release s exe a súborom .sha256 (poznámky = -Notes, inak commity od minulého tagu).
+      4. pushne master,
+      5. vytvorí GitHub Release (a s ním tag vX.Y.Z na HEAD) s exe a súborom .sha256 (poznámky = -Notes, inak commity od minulého tagu).
 
     Aplikácia si pri štarte nájde posledný release a ponúkne aktualizáciu (src\Kalkulacie.App\Update\Updater.cs).
 
@@ -67,9 +67,18 @@ try {
     }
 
     Invoke-Checked 'git fetch' { git fetch --tags origin --quiet }
-    if (git tag --list $tag) { Fail "Tag $tag už existuje — zvýšte <Version> v $csproj." }
+    # Tag vytvára až GitHub spolu s release. Existujúci tag je v poriadku len vtedy, keď ukazuje na HEAD
+    # a release k nemu ešte nie je (dokončenie predchádzajúceho nepodareného pokusu).
+    $head = git rev-parse HEAD
+    $tagExists = [bool](git tag --list $tag)
+    if ($tagExists) {
+        if ((git rev-list -n 1 $tag) -ne $head) { Fail "Tag $tag už existuje na inom commite — zvýšte <Version> v $csproj." }
+        & $gh release view $tag -R $repo *> $null
+        if ($LASTEXITCODE -eq 0) { Fail "Release $tag už existuje — zvýšte <Version> v $csproj." }
+        Write-Host "Tag $tag už existuje na HEAD, release k nemu nie je — dokončím ho." -ForegroundColor Yellow
+    }
 
-    $lastTag = git tag --list 'v*' --sort=-v:refname | Select-Object -First 1
+    $lastTag = git tag --list 'v*' --sort=-v:refname | Where-Object { $_ -ne $tag } | Select-Object -First 1
     if ($lastTag -and ([version]$version -le [version]$lastTag.TrimStart('v'))) {
         Fail "Verzia $version nie je vyššia ako posledný tag $lastTag."
     }
@@ -115,11 +124,12 @@ try {
 
     # --- Tag a release -----------------------------------------------------------------------------
     Invoke-Checked 'git push master' { git push origin master }
-    Invoke-Checked 'git tag' { git tag -a $tag -m "Verzia $version" }
-    Invoke-Checked 'git push tag' { git push origin $tag }
+    # Tag vytvorí GitHub spolu s release (--target) — ak release zlyhá (napr. token bez práv), nevznikne
+    # osamotený tag a skript sa dá jednoducho spustiť znova.
     Invoke-Checked 'gh release create' {
-        & $gh release create $tag $exe $shaFile -R $repo --title "Verzia $version" --notes-file $notesFile --verify-tag
+        & $gh release create $tag $exe $shaFile -R $repo --title "Verzia $version" --notes-file $notesFile --target $head
     }
+    Invoke-Checked 'git fetch tag' { git fetch --tags origin --quiet }
 
     Write-Host ''
     Write-Host "Hotovo: https://github.com/$repo/releases/tag/$tag" -ForegroundColor Green
