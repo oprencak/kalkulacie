@@ -15,7 +15,54 @@ namespace Kalkulacie.Core.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.34");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.15");
+
+            modelBuilder.Entity("Kalkulacie.Core.Entities.CalculationEdition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CalculationEditions");
+                });
+
+            modelBuilder.Entity("Kalkulacie.Core.Entities.CalculationEditionProduct", b =>
+                {
+                    b.Property<int>("CalculationEditionId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Calculation")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("CalculationEditionId", "ProductId");
+
+                    b.ToTable("CalculationEditionProducts");
+                });
 
             modelBuilder.Entity("Kalkulacie.Core.Entities.CompositionRow", b =>
                 {
@@ -163,6 +210,15 @@ namespace Kalkulacie.Core.Migrations
                     b.ToTable("Products");
                 });
 
+            modelBuilder.Entity("Kalkulacie.Core.Entities.CalculationEditionProduct", b =>
+                {
+                    b.HasOne("Kalkulacie.Core.Entities.CalculationEdition", null)
+                        .WithMany("Products")
+                        .HasForeignKey("CalculationEditionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Kalkulacie.Core.Entities.CompositionRow", b =>
                 {
                     b.HasOne("Kalkulacie.Core.Entities.Material", "Material")
@@ -186,6 +242,11 @@ namespace Kalkulacie.Core.Migrations
                     b.Navigation("Operation");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Kalkulacie.Core.Entities.CalculationEdition", b =>
+                {
+                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("Kalkulacie.Core.Entities.Material", b =>

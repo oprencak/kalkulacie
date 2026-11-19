@@ -1,3 +1,5 @@
+using System.Text.Json;
+using Kalkulacie.Core.Calculations;
 using Kalkulacie.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +12,8 @@ public class KalkulacieDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<CompositionRow> CompositionRows => Set<CompositionRow>();
     public DbSet<PricingSettings> PricingSettings => Set<PricingSettings>();
+    public DbSet<CalculationEdition> CalculationEditions => Set<CalculationEdition>();
+    public DbSet<CalculationEditionProduct> CalculationEditionProducts => Set<CalculationEditionProduct>();
 
     /// <summary>Koeficienty cenových vzorcov tejto databázy (nesledovaná kópia); predvolené, ak riadok chýba.</summary>
     public PricingSettings GetPricingSettings() =>
@@ -19,6 +23,21 @@ public class KalkulacieDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<CalculationEdition>(e =>
+        {
+            e.Property(x => x.Revision).IsConcurrencyToken();
+            e.HasMany(x => x.Products).WithOne().HasForeignKey(x => x.CalculationEditionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CalculationEditionProduct>(e =>
+        {
+            e.HasKey(x => new { x.CalculationEditionId, x.ProductId });
+            e.Property(x => x.Calculation).HasConversion(
+                calculation => JsonSerializer.Serialize(calculation, (JsonSerializerOptions?)null),
+                json => JsonSerializer.Deserialize<SavedCalculation>(json, (JsonSerializerOptions?)null)!);
+        });
+
         modelBuilder.Entity<Material>(e =>
         {
             e.HasIndex(m => m.Name);

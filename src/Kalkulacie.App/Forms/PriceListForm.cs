@@ -13,14 +13,13 @@ public partial class PriceListForm : AppForm
     private const string ManualLabel = "Ručné";
     private const string AutomaticLabel = "Automat";
 
-    private sealed record PriceListEntry(PriceListRow Row, IReadOnlyList<string> Warnings);
+    private sealed record PriceListEntry(PriceListRow Row, IReadOnlyList<string> Warnings, DateTime? CalculatedAt = null);
 
-    private readonly KalkulacieDbContext _db;
+    private readonly KalkulacieDbContext? _db;
+    private readonly CalculationEdition? _edition;
     private List<PriceListEntry> _allRows = [];
     /// <summary>Riadky po filtri typu a hľadaní — to, čo je v gride, sa aj tlačí a exportuje.</summary>
     private List<PriceListEntry> _rows = [];
-
-    private PricingSettings _settings = new();
 
     // stĺpce: (hlavička, šírka v jednotkách, zarovnanie)
     private static readonly (string Header, float Weight, StringAlignment Align)[] Columns =
@@ -37,65 +36,70 @@ public partial class PriceListForm : AppForm
     private int _printPageNumber;
     private DateTime _printTime;
 
-    public PriceListForm()
+    public PriceListForm() : this(null) { }
+
+    internal PriceListForm(CalculationEdition? edition)
     {
         InitializeComponent();
-        _db = AppDb.CreateContext();
+        _edition = edition;
+        if (edition is null)
+        {
+            _db = AppDb.CreateContext();
+        }
+        else
+        {
+            Text = Title;
+            btnRefresh.Visible = false;
+            int offset = btnPreview.Left - btnRefresh.Left;
+            btnPreview.Left -= offset;
+            btnPrint.Left -= offset;
+            btnExport.Left -= offset;
+        }
         Load += OnLoad;
     }
 
     private void OnLoad(object? sender, EventArgs e) => RefreshGrid();
 
     private string NumberFormat => $"N{(int)numDecimals.Value}";
+    private string Title => _edition is null ? "Kalkulácie" : _edition.Name;
+    private string EditionDate => _edition?.Date.ToString("d.M.yyyy") ?? "";
+    private string OutputContext => _edition is null ? AppDb.DbName : $"{AppDb.DbName} — dátum kalkulácie {EditionDate}";
 
     private string FilterLabel =>
         rdManual.Checked ? "ručná výroba" : rdAutomatic.Checked ? "strojová výroba" : "všetky výrobky";
 
     private void RefreshGrid()
     {
-        _db.ChangeTracker.Clear();
-        _settings = _db.GetPricingSettings();
-        var products = _db.Products
-            .Include(p => p.CompositionRows).ThenInclude(r => r.Material)
-            .Include(p => p.CompositionRows).ThenInclude(r => r.Operation)
-            .ToList();
-
-        _allRows = products
-            .OrderBy(p => p.Mode)
-            .ThenBy(p => p.Name, StringComparer.CurrentCultureIgnoreCase)
-            .Select(p =>
-            {
-                var s = PriceCalculator.Calculate(p, _settings);
-                var row = new PriceListRow(
-                    p.Name,
-                    p.Mode == CalculationMode.Manual ? ManualLabel : AutomaticLabel,
-                    s.MaterialTotal, s.OperationTotal, s.Uvn,
-                    s.BasePrice);
-                return new PriceListEntry(row, GetWarnings(p, row.Typ).ToList());
-            }).ToList();
+        if (_edition is not null)
+        {
+            _allRows = _edition.Products.OrderBy(p => p.Calculation.Mode)
+                .ThenBy(p => p.ProductName, StringComparer.CurrentCultureIgnoreCase)
+                .Select(p => CreateEntry(p.ProductName, p.Calculation.Mode, p.Calculation.Summary,
+                    p.Calculation.Warnings, p.Calculation.CalculatedAtUtc.ToLocalTime()))
+                .ToList();
+        }
+        else if (_db is not null)
+        {
+            _db.ChangeTracker.Clear();
+            var settings = _db.GetPricingSettings();
+            _allRows = _db.Products
+                .Include(p => p.CompositionRows).ThenInclude(r => r.Material)
+                .Include(p => p.CompositionRows).ThenInclude(r => r.Operation)
+                .AsEnumerable().OrderBy(p => p.Mode)
+                .ThenBy(p => p.Name, StringComparer.CurrentCultureIgnoreCase)
+                .Select(p => CreateEntry(p.Name, p.Mode, PriceCalculator.Calculate(p, settings), PriceWarnings.ForProduct(p)))
+                .ToList();
+        }
 
         ApplyFilter();
     }
 
-    private static IEnumerable<string> GetWarnings(Product product, string type)
+    private static PriceListEntry CreateEntry(string name, CalculationMode mode, PriceSummary summary,
+        IEnumerable<string> warnings, DateTime? calculatedAt = null)
     {
-        var label = $"{product.Name} ({type})";
-        if (product.CompositionRows.Count == 0)
-            yield return $"{label} · výrobok bez zloženia";
-
-        foreach (var row in product.CompositionRows.Where(r => r.RowType == RowType.Material).OrderBy(r => r.Position))
-        {
-            var materialLabel = $"{label} · riadok {row.Position} ({row.Material?.Name ?? "materiál"})";
-            if (row.Material?.Price == 0)
-                yield return $"{materialLabel} · nulová cena materiálu";
-
-            // Kusový riadok má oba rozmery prázdne. Jeden vyplnený rozmer signalizuje plošný riadok.
-            if ((row.DimensionA.HasValue || row.DimensionB.HasValue) &&
-                (row.DimensionA.GetValueOrDefault() <= 0 || row.DimensionB.GetValueOrDefault() <= 0))
-            {
-                yield return $"{materialLabel} · chýbajúci alebo neplatný rozmer plošného materiálu";
-            }
-        }
+        var type = mode == CalculationMode.Manual ? ManualLabel : AutomaticLabel;
+        var row = new PriceListRow(name, type, summary.MaterialTotal, summary.OperationTotal, summary.Uvn, summary.BasePrice);
+        return new PriceListEntry(row, warnings.Select(w => $"{name} ({type}) · {w}").ToArray(), calculatedAt);
     }
 
     private void ApplyFilter()
@@ -149,14 +153,14 @@ public partial class PriceListForm : AppForm
 
     private void btnPreview_Click(object sender, EventArgs e)
     {
-        var path = Path.Combine(Path.GetTempPath(), "kalkulacie_cennik.html");
+        var path = Path.Combine(Path.GetTempPath(), _edition is null ? "kalkulacie_cennik.html" : $"ulozena_kalkulacia_{_edition.Id}.html");
         File.WriteAllText(path, GenerateHtml(), Encoding.UTF8);
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
     }
 
     private void btnPrint_Click(object sender, EventArgs e)
     {
-        var doc = new PrintDocument { DocumentName = "Kalkulácie" };
+        using var doc = new PrintDocument { DocumentName = Title };
         doc.BeginPrint += (_, _) =>
         {
             _printRowIndex = 0;
@@ -178,24 +182,35 @@ public partial class PriceListForm : AppForm
         {
             Title = "Export cenníka",
             Filter = "CSV pre Excel (*.csv)|*.csv",
-            FileName = $"kalkulacie_{DateTime.Now:yyyy-MM-dd}.csv",
+            FileName = _edition is null ? $"kalkulacie_{DateTime.Now:yyyy-MM-dd}.csv" : $"ulozena_kalkulacia_{_edition.Date:yyyy-MM-dd}.csv",
         };
         if (dlg.ShowDialog(this) != DialogResult.OK) return;
 
-        // Bodkočiarka + čísla v miestnom formáte + UTF-8 s BOM: slovenský Excel súbor otvorí priamo.
-        // Bez oddeľovača tisícov, aby Excel hodnoty čítal ako čísla.
-        var numberFormat = $"F{(int)numDecimals.Value}";
-        var lines = new List<string> { string.Join(";", Columns.Select(c => CsvField(c.Header))) };
-        lines.AddRange(_rows.Select(r => string.Join(";", FormatValues(r.Row, numberFormat).Select(CsvField))));
-
         try
         {
-            File.WriteAllLines(dlg.FileName, lines, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+            File.WriteAllLines(dlg.FileName, CsvLines(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             MessageBox.Show(this, $"Súbor sa nepodarilo uložiť:\n{ex.Message}", "Chyba",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private IEnumerable<string> CsvLines()
+    {
+        // Bez oddeľovača tisícov, aby Excel hodnoty čítal ako čísla.
+        var format = _edition is null ? $"F{(int)numDecimals.Value}" : EditionControls.DecimalFormat;
+        IEnumerable<string> headers = Columns.Select(c => c.Header);
+        if (_edition is not null) headers = headers.Concat(["Kalkulácia", "Dátum kalkulácie", "Dátum výpočtu"]);
+        yield return string.Join(";", headers.Select(CsvField));
+
+        foreach (var entry in _rows)
+        {
+            IEnumerable<string> values = FormatValues(entry.Row, format);
+            if (_edition is not null)
+                values = values.Concat([_edition.Name, EditionDate, $"{entry.CalculatedAt:d.M.yyyy HH:mm}"]);
+            yield return string.Join(";", values.Select(CsvField));
         }
     }
 
@@ -252,13 +267,13 @@ public partial class PriceListForm : AppForm
     private string GenerateHtml()
     {
         var sb = new StringBuilder();
-        sb.AppendLine("<!DOCTYPE html><html><head><meta charset='utf-8'><title>Kalkulácie</title>");
+        sb.AppendLine($"<!DOCTYPE html><html><head><meta charset='utf-8'><title>{Encode(Title)}</title>");
         sb.AppendLine("<style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}" +
             "h2{margin-bottom:4px}p{margin:0 0 10px;color:#555}table{width:100%;border-collapse:collapse}" +
             "th,td{border:1px solid #ccc;padding:4px 8px}th{background:#eee}" +
             ".r{text-align:right}</style></head><body>");
-        sb.AppendLine("<h2>Kalkulácie</h2>");
-        sb.AppendLine($"<p>{Encode(AppDb.DbName)} — {Encode(FilterLabel)} — " +
+        sb.AppendLine($"<h2>{Encode(Title)}</h2>");
+        sb.AppendLine($"<p>{Encode(OutputContext)} — {Encode(FilterLabel)} — " +
             $"{DateTime.Now:d.M.yyyy H:mm} — počet: {_rows.Count}</p>");
         sb.AppendLine("<table><thead><tr>" +
             string.Concat(Columns.Select(c => $"<th>{Encode(c.Header)}</th>")) +
@@ -298,7 +313,7 @@ public partial class PriceListForm : AppForm
         // Päta na každej strane: dátum tlače vľavo, číslo strany vpravo
         float footerH = rowFont.GetHeight(g) + 6;
         float footerY = bounds.Bottom - rowFont.GetHeight(g);
-        g.DrawString($"{AppDb.DbName} — {FilterLabel} — {_printTime:d.M.yyyy H:mm}",
+        g.DrawString($"{OutputContext} — {FilterLabel} — {_printTime:d.M.yyyy H:mm}",
             rowFont, Brushes.Gray, bounds.Left, footerY);
         g.DrawString($"Strana {_printPageNumber}", rowFont, Brushes.Gray,
             new RectangleF(bounds.Left, footerY, bounds.Width, footerH), rightAligned);
@@ -309,8 +324,10 @@ public partial class PriceListForm : AppForm
         // Nadpis len na prvej strane
         if (_printPageNumber == 1)
         {
-            g.DrawString("Kalkulácie", titleFont, Brushes.Black, bounds.Left, y);
-            y += titleFont.GetHeight(g) + 8;
+            float titleHeight = Math.Min(g.MeasureString(Title, titleFont, bounds.Width).Height, titleFont.GetHeight(g) * 2);
+            using var titleFormat = new StringFormat { Trimming = StringTrimming.EllipsisCharacter };
+            g.DrawString(Title, titleFont, Brushes.Black, new RectangleF(bounds.Left, y, bounds.Width, titleHeight), titleFormat);
+            y += titleHeight + 8;
         }
 
         // Hlavička stĺpcov
@@ -367,7 +384,7 @@ public partial class PriceListForm : AppForm
 
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
-        _db.Dispose();
+        _db?.Dispose();
         base.OnFormClosed(e);
     }
 }
