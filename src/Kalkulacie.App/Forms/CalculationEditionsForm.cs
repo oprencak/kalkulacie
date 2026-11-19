@@ -42,7 +42,7 @@ internal sealed class CalculationEditionsForm : AppForm
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.Controls.Add(EditionControls.Bar(new Label { Text = "Hľadať", AutoSize = true, Margin = new Padding(3, 7, 8, 0) }, _search), 0, 0);
         layout.Controls.Add(_grid, 0, 1);
-        layout.Controls.Add(EditionControls.Bar(EditionControls.Button("Nová kalkulácia…", NewEdition), _open, _copy, _delete, close), 0, 2);
+        layout.Controls.Add(EditionControls.Bar(Theme.Primary(EditionControls.Button("Nová kalkulácia…", NewEdition)), _open, _copy, _delete, close), 0, 2);
         Controls.Add(layout);
 
         _search.TextChanged += (_, _) => ApplyFilter();

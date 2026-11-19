@@ -104,6 +104,13 @@ Verzia a ikona:
   Pri každom vydaní (publish) ju treba zvýšiť.
 - Ikona `src/Kalkulacie.App/palma.ico` je ikona exe aj všetkých okien — každý formulár dedí z `Forms/AppForm`.
 
+Vzhľad:
+- Jednotný vzhľad je v `Forms/Theme.cs` (farby, zaoblené tlačidlá, tabuľky, zoznamy). `AppForm.OnLoad` ho aplikuje
+  na všetky ovládacie prvky okna — formuláre samy farby ani štýl tlačidiel nenastavujú, berú ich z `Theme`.
+- Hlavné tlačidlo okna (plná farba) je `AcceptButton`, alebo sa označí cez `Theme.Primary(button)`.
+- Veľkosť písma ostáva Segoe UI 9 — rozloženie okien (pevné súradnice) je na ňu počítané.
+- Položky hlavného menu sú `Forms/NavButton` (karta s ikonou zo Segoe MDL2 Assets, názvom a popisom).
+
 Konvencie UI:
 - Detail výrobku ukladá všetko hneď (riadky, typ, poradie); názov tlačidlom alebo pri zatvorení okna.
 - Hľadanie ide cez `TextSearch.Matches` — bez ohľadu na veľkosť písmen a diakritiku.

@@ -67,7 +67,7 @@ public class UpdateForm : AppForm
                 "spustení). Návrat späť = vrátiť starý exe a obnoviť databázu zo zálohy v data\\zalohy.",
             AutoSize = true,
             MaximumSize = new Size(490, 0),
-            BackColor = Color.FromArgb(255, 244, 206),
+            BackColor = Theme.WarningBack,
             Padding = new Padding(8),
             Margin = new Padding(0, 10, 0, 10),
         });

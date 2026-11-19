@@ -70,7 +70,7 @@ internal sealed class CalculationEditionForm : AppForm
         });
         _recalculateAll = EditionControls.Button("Prepočítať všetky…", () => Recalculate(_edition.Products));
         _output = EditionControls.Button("Tlač a export…", OpenOutput);
-        var save = EditionControls.Button("Uložiť kalkuláciu", Save);
+        var save = Theme.Primary(EditionControls.Button("Uložiť kalkuláciu", Save));
         var close = EditionControls.Button("Zavrieť", Close);
         CancelButton = close;
 

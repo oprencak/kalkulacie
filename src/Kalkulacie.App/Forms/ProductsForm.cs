@@ -13,6 +13,7 @@ public partial class ProductsForm : AppForm
     public ProductsForm(CalculationMode? initialFilter = null)
     {
         InitializeComponent();
+        Theme.Primary(btnAdd);
         _db = AppDb.CreateContext();
         Load += (_, _) =>
         {

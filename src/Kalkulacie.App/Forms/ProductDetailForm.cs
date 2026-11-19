@@ -17,6 +17,9 @@ public partial class ProductDetailForm : AppForm
     public ProductDetailForm(int productId)
     {
         InitializeComponent();
+        Theme.Primary(btnAddMaterial);
+        Theme.Primary(btnAddOperation);
+        panelSummary.Resize += (_, _) => panelSummary.Invalidate();
         _productId = productId;
         _db = AppDb.CreateContext();
         Load += OnLoad;
@@ -77,6 +80,7 @@ public partial class ProductDetailForm : AppForm
             gridRows.Columns["Cost"]!.HeaderText = "Náklad";
             gridRows.Columns["Položka"]!.FillWeight = 250;
             gridRows.Columns["Unit"]!.FillWeight = 50;
+            gridRows.Columns["Quantity"]!.FillWeight = 140; // dlhá hlavička
 
             foreach (var name in new[] { "Quantity", "DimensionA", "DimensionB" })
             {
@@ -100,10 +104,16 @@ public partial class ProductDetailForm : AppForm
     private void RefreshSummary()
     {
         var summary = PriceCalculator.Calculate(_product, _settings);
-        lblMaterialTotal.Text = $"Materiál:  {summary.MaterialTotal:N4}";
-        lblOperationTotal.Text = $"Práca:     {summary.OperationTotal:N4}";
-        lblUvn.Text = $"UVN:       {summary.Uvn:N4}";
-        lblBasePrice.Text = $"Cena:      {summary.BasePrice:N4}";
+        lblMaterialTotal.Text = $"{summary.MaterialTotal:N4}";
+        lblOperationTotal.Text = $"{summary.OperationTotal:N4}";
+        lblUvn.Text = $"{summary.Uvn:N4}";
+        lblBasePrice.Text = $"{summary.BasePrice:N4}";
+    }
+
+    private void panelSummary_Paint(object? sender, PaintEventArgs e)
+    {
+        using var pen = new Pen(Theme.Border);
+        e.Graphics.DrawRectangle(pen, 0, 0, panelSummary.Width - 1, panelSummary.Height - 1);
     }
 
     // Všetko v tomto okne sa ukladá hneď: riadky zloženia, typ výrobku (zmenou v zozname)

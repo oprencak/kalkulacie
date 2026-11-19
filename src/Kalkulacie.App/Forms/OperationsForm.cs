@@ -13,6 +13,7 @@ public partial class OperationsForm : AppForm
     public OperationsForm()
     {
         InitializeComponent();
+        Theme.Primary(btnSave);
         _db = AppDb.CreateContext();
         Load += OnLoad;
     }

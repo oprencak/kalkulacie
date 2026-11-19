@@ -13,6 +13,7 @@ public partial class MaterialsForm : AppForm
     public MaterialsForm()
     {
         InitializeComponent();
+        Theme.Primary(btnSave);
         _db = AppDb.CreateContext();
         Load += OnLoad;
     }
