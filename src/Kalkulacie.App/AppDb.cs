@@ -1,3 +1,4 @@
+using System.Globalization;
 using Kalkulacie.Core;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -120,6 +121,77 @@ public static class AppDb
             .OrderBy(Path.GetFileName, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
+    private const string BackupDateFormat = "yyyyMMdd_HHmmss";
+
+    public sealed record DatabaseBackup(string Path, string DatabaseName, DateTime CreatedAt);
+
+    public static List<DatabaseBackup> ListBackups()
+    {
+        var backups = new List<DatabaseBackup>();
+        if (!Directory.Exists(BackupDir)) return backups;
+
+        foreach (var path in Directory.EnumerateFiles(BackupDir, "*.db"))
+        {
+            var name = Path.GetFileNameWithoutExtension(path);
+            int separator = name.Length - BackupDateFormat.Length - 1;
+            if (separator > 0 && name[separator] == '_' &&
+                DateTime.TryParseExact(name[(separator + 1)..], BackupDateFormat, CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var createdAt))
+            {
+                backups.Add(new DatabaseBackup(path, name[..separator], createdAt));
+            }
+        }
+
+        return backups.OrderByDescending(b => b.CreatedAt)
+            .ThenBy(b => b.DatabaseName, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>Vytvorí samostatnú databázu zo zálohy a vráti jej cestu.</summary>
+    public static string RestoreBackup(DatabaseBackup backup, string name)
+    {
+        var error = ValidateNewName(name);
+        if (error is not null) throw new InvalidOperationException(error);
+
+        var target = Path.Combine(DataDir, name.Trim() + ".db");
+        var temporary = Path.Combine(DataDir, $".obnova-{Guid.NewGuid():N}.tmp");
+        var sourceOptions = new SqliteConnectionStringBuilder
+        {
+            DataSource = backup.Path, Mode = SqliteOpenMode.ReadOnly, Pooling = false,
+        };
+        var destinationOptions = new SqliteConnectionStringBuilder
+        {
+            DataSource = temporary, Pooling = false,
+        };
+
+        try
+        {
+            using (var source = new SqliteConnection(sourceOptions.ConnectionString))
+            using (var destination = new SqliteConnection(destinationOptions.ConnectionString))
+            {
+                source.Open();
+                destination.Open();
+                source.BackupDatabase(destination);
+
+                using var check = destination.CreateCommand();
+                check.CommandText = "PRAGMA quick_check";
+                if (check.ExecuteScalar() is not "ok")
+                    throw new InvalidDataException("Záloha neprešla kontrolou databázy SQLite.");
+
+                check.CommandText = "SELECT 1 FROM __EFMigrationsHistory LIMIT 1";
+                if (check.ExecuteScalar() is null)
+                    throw new InvalidDataException("Záloha neobsahuje históriu migrácií databázy Kalkulácie.");
+            }
+
+            File.Move(temporary, target, overwrite: false);
+            return target;
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
     /// <summary>Cesta k naposledy použitej DB, ak ešte existuje.</summary>
     public static string? LastUsed
     {
@@ -161,7 +233,8 @@ public static class AppDb
             var changed = new[] { path, path + "-wal" }.Where(File.Exists).Max(File.GetLastWriteTimeUtc);
             if (existing.Count > 0 && File.GetLastWriteTimeUtc(existing[^1]) >= changed) return;
 
-            var target = Path.Combine(BackupDir, $"{name}_{DateTime.Now:yyyyMMdd_HHmmss}.db");
+            var timestamp = DateTime.Now.ToString(BackupDateFormat, CultureInfo.InvariantCulture);
+            var target = Path.Combine(BackupDir, $"{name}_{timestamp}.db");
             using (var source = new SqliteConnection($"Data Source={path}"))
             using (var dest = new SqliteConnection($"Data Source={target}"))
             {

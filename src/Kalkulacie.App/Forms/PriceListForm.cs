@@ -13,10 +13,12 @@ public partial class PriceListForm : AppForm
     private const string ManualLabel = "Ručné";
     private const string AutomaticLabel = "Automat";
 
+    private sealed record PriceListEntry(PriceListRow Row, IReadOnlyList<string> Warnings);
+
     private readonly KalkulacieDbContext _db;
-    private List<PriceListRow> _allRows = [];
+    private List<PriceListEntry> _allRows = [];
     /// <summary>Riadky po filtri typu a hľadaní — to, čo je v gride, sa aj tlačí a exportuje.</summary>
-    private List<PriceListRow> _rows = [];
+    private List<PriceListEntry> _rows = [];
 
     private PricingSettings _settings = new();
 
@@ -64,26 +66,48 @@ public partial class PriceListForm : AppForm
             .Select(p =>
             {
                 var s = PriceCalculator.Calculate(p, _settings);
-                return new PriceListRow(
+                var row = new PriceListRow(
                     p.Name,
                     p.Mode == CalculationMode.Manual ? ManualLabel : AutomaticLabel,
                     s.MaterialTotal, s.OperationTotal, s.Uvn,
                     s.BasePrice);
+                return new PriceListEntry(row, GetWarnings(p, row.Typ).ToList());
             }).ToList();
 
         ApplyFilter();
+    }
+
+    private static IEnumerable<string> GetWarnings(Product product, string type)
+    {
+        var label = $"{product.Name} ({type})";
+        if (product.CompositionRows.Count == 0)
+            yield return $"{label} · výrobok bez zloženia";
+
+        foreach (var row in product.CompositionRows.Where(r => r.RowType == RowType.Material).OrderBy(r => r.Position))
+        {
+            var materialLabel = $"{label} · riadok {row.Position} ({row.Material?.Name ?? "materiál"})";
+            if (row.Material?.Price == 0)
+                yield return $"{materialLabel} · nulová cena materiálu";
+
+            // Kusový riadok má oba rozmery prázdne. Jeden vyplnený rozmer signalizuje plošný riadok.
+            if ((row.DimensionA.HasValue || row.DimensionB.HasValue) &&
+                (row.DimensionA.GetValueOrDefault() <= 0 || row.DimensionB.GetValueOrDefault() <= 0))
+            {
+                yield return $"{materialLabel} · chýbajúci alebo neplatný rozmer plošného materiálu";
+            }
+        }
     }
 
     private void ApplyFilter()
     {
         var term = txtSearch.Text.Trim();
         _rows = _allRows
-            .Where(r => !rdManual.Checked || r.Typ == ManualLabel)
-            .Where(r => !rdAutomatic.Checked || r.Typ == AutomaticLabel)
-            .Where(r => TextSearch.Matches(r.Výrobok, term))
+            .Where(r => !rdManual.Checked || r.Row.Typ == ManualLabel)
+            .Where(r => !rdAutomatic.Checked || r.Row.Typ == AutomaticLabel)
+            .Where(r => TextSearch.Matches(r.Row.Výrobok, term))
             .ToList();
 
-        grid.DataSource = _rows;
+        grid.DataSource = _rows.Select(r => r.Row).ToList();
         lblCount.Text = $"Počet: {_rows.Count}";
         ApplyFormat();
     }
@@ -148,6 +172,8 @@ public partial class PriceListForm : AppForm
 
     private void btnExport_Click(object sender, EventArgs e)
     {
+        if (!ConfirmExport()) return;
+
         using var dlg = new SaveFileDialog
         {
             Title = "Export cenníka",
@@ -160,7 +186,7 @@ public partial class PriceListForm : AppForm
         // Bez oddeľovača tisícov, aby Excel hodnoty čítal ako čísla.
         var numberFormat = $"F{(int)numDecimals.Value}";
         var lines = new List<string> { string.Join(";", Columns.Select(c => CsvField(c.Header))) };
-        lines.AddRange(_rows.Select(r => string.Join(";", FormatValues(r, numberFormat).Select(CsvField))));
+        lines.AddRange(_rows.Select(r => string.Join(";", FormatValues(r.Row, numberFormat).Select(CsvField))));
 
         try
         {
@@ -171,6 +197,51 @@ public partial class PriceListForm : AppForm
             MessageBox.Show(this, $"Súbor sa nepodarilo uložiť:\n{ex.Message}", "Chyba",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
+    }
+
+    private bool ConfirmExport()
+    {
+        var warnings = _rows.SelectMany(r => r.Warnings).ToArray();
+        if (warnings.Length == 0) return true;
+
+        using var dlg = new AppForm
+        {
+            Text = "Kontrola kalkulácií pred exportom",
+            StartPosition = FormStartPosition.CenterParent,
+            ShowInTaskbar = false,
+            MinimizeBox = false,
+            ClientSize = new Size(760, 330),
+            MinimumSize = new Size(520, 260),
+        };
+        var label = new Label
+        {
+            Text = $"Počet upozornení vo vybranom cenníku: {warnings.Length}",
+            Location = new Point(12, 12), AutoSize = true,
+        };
+        var list = new ListBox
+        {
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
+            Location = new Point(12, 38), Size = new Size(736, 236),
+            IntegralHeight = false, HorizontalScrollbar = true,
+        };
+        list.Items.AddRange(warnings);
+        var proceed = new Button
+        {
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+            Text = "Pokračovať v exporte", Location = new Point(474, 286), Size = new Size(150, 32),
+            DialogResult = DialogResult.OK,
+        };
+        var cancel = new Button
+        {
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+            Text = "Zrušiť export", Location = new Point(632, 286), Size = new Size(116, 32),
+            DialogResult = DialogResult.Cancel,
+        };
+        dlg.AcceptButton = cancel;
+        dlg.CancelButton = cancel;
+        dlg.Controls.AddRange([label, list, proceed, cancel]);
+        dlg.ActiveControl = cancel;
+        return dlg.ShowDialog(this) == DialogResult.OK;
     }
 
     private static string CsvField(string value) =>
@@ -195,7 +266,7 @@ public partial class PriceListForm : AppForm
 
         foreach (var r in _rows)
         {
-            var values = FormatValues(r, NumberFormat);
+            var values = FormatValues(r.Row, NumberFormat);
             sb.Append("<tr>");
             for (int i = 0; i < values.Length; i++)
                 sb.Append(Columns[i]!.Align == StringAlignment.Far
@@ -268,7 +339,7 @@ public partial class PriceListForm : AppForm
                 break;
             }
 
-            string[] values = FormatValues(_rows[_printRowIndex], numberFormat);
+            string[] values = FormatValues(_rows[_printRowIndex].Row, numberFormat);
 
             x = bounds.Left;
             for (int i = 0; i < Columns.Length; i++)
