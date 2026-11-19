@@ -14,6 +14,7 @@ partial class MainForm
     private void InitializeComponent()
     {
         this.btnKalkulacie = new Button();
+        this.btnEditions = new Button();
         this.btnProducts = new Button();
         this.separator = new Label();
         this.btnMaterials = new Button();
@@ -37,6 +38,13 @@ partial class MainForm
         this.btnKalkulacie.Text = "Kalkulácie";
         this.btnKalkulacie.Font = new Font("Segoe UI", 11F);
         this.btnKalkulacie.Click += new EventHandler(this.btnKalkulacie_Click);
+        row += gap;
+
+        this.btnEditions.Location = new Point(x, row);
+        this.btnEditions.Size = new Size(w, h);
+        this.btnEditions.Text = "Uložené kalkulácie";
+        this.btnEditions.Font = new Font("Segoe UI", 11F);
+        this.btnEditions.Click += new EventHandler(this.btnEditions_Click);
         row += gap;
 
         this.btnProducts.Location = new Point(x, row);
@@ -124,6 +132,7 @@ partial class MainForm
         this.Controls.Add(this.lblVersion);
         this.Controls.Add(this.pnlUpdate);
         this.Controls.Add(this.btnKalkulacie);
+        this.Controls.Add(this.btnEditions);
         this.Controls.Add(this.btnProducts);
         this.Controls.Add(this.separator);
         this.Controls.Add(this.btnMaterials);
@@ -138,6 +147,7 @@ partial class MainForm
     }
 
     private Button btnKalkulacie;
+    private Button btnEditions;
     private Button btnProducts;
     private Label separator;
     private Button btnMaterials;

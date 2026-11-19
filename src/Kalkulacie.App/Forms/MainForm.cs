@@ -79,6 +79,12 @@ public partial class MainForm : AppForm
         form.ShowDialog(this);
     }
 
+    private void btnEditions_Click(object sender, EventArgs e)
+    {
+        using var form = new CalculationEditionsForm();
+        form.ShowDialog(this);
+    }
+
     private void btnProducts_Click(object sender, EventArgs e)
     {
         using var form = new ProductsForm();
