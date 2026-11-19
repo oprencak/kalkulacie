@@ -7,6 +7,7 @@ public partial class MainForm : AppForm
     public MainForm()
     {
         InitializeComponent();
+        Theme.Primary(btnUpdate);
         UpdateDbInfo();
         Shown += async (_, _) => await CheckForUpdateAsync();
     }
@@ -27,7 +28,7 @@ public partial class MainForm : AppForm
         if (!pnlUpdate.Visible)
         {
             pnlUpdate.Visible = true;
-            ClientSize = new Size(ClientSize.Width, pnlUpdate.Bottom + 12);
+            ClientSize = new Size(ClientSize.Width, pnlUpdate.Bottom + pnlUpdate.Left);
         }
     }
 
@@ -42,7 +43,6 @@ public partial class MainForm : AppForm
     private void UpdateDbInfo()
     {
         Text = $"Kalkulácie — {AppDb.DbName}";
-        lblVersion.Text = $"Verzia {AppInfo.Version}";
         lblDb.Text = $"Databáza: {AppDb.DbName}";
         toolTip.SetToolTip(lblDb, AppDb.DbPath);
 
@@ -51,6 +51,41 @@ public partial class MainForm : AppForm
             lblDb.Text += " — záloha zlyhala!";
             toolTip.SetToolTip(lblDb, $"{AppDb.DbPath}\nAutomatická záloha zlyhala: {AppDb.BackupError}");
         }
+    }
+
+    private readonly Bitmap _logo = new Icon(AppInfo.Icon, 48, 48).ToBitmap();
+    private readonly Font _titleFont = new("Segoe UI Semibold", 15F);
+    private readonly Font _versionFont = new("Segoe UI", 9F);
+
+    private void PaintHeader(object? sender, PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+
+        int height = pnlHeader.Height;
+        int logo = height * 48 / 76, margin = (height - logo) / 2;
+        g.DrawImage(_logo, btnKalkulacie.Left, margin, logo, logo);
+
+        int textX = btnKalkulacie.Left + logo + margin;
+        int y = (height - _titleFont.Height - _versionFont.Height) / 2 - 1;
+        using var light = new SolidBrush(Color.FromArgb(200, 232, 226));
+        g.DrawString("Kalkulácie", _titleFont, Brushes.White, textX - 3, y);
+        g.DrawString($"Verzia {AppInfo.Version}", _versionFont, light, textX, y + _titleFont.Height);
+    }
+
+    private void PaintUpdatePanel(object? sender, PaintEventArgs e)
+    {
+        using var pen = new Pen(Theme.WarningBorder);
+        e.Graphics.DrawRectangle(pen, 0, 0, pnlUpdate.Width - 1, pnlUpdate.Height - 1);
+    }
+
+    protected override void OnFormClosed(FormClosedEventArgs e)
+    {
+        _logo.Dispose();
+        _titleFont.Dispose();
+        _versionFont.Dispose();
+        base.OnFormClosed(e);
     }
 
     private void btnChangeDb_Click(object sender, EventArgs e)

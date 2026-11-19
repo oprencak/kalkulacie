@@ -8,7 +8,7 @@ namespace Kalkulacie.App.Forms;
 public class SplashForm : AppForm
 {
     private readonly Bitmap _logo = new Icon(AppInfo.Icon, 96, 96).ToBitmap();
-    private readonly Font _titleFont = new("Segoe UI", 20F, FontStyle.Bold);
+    private readonly Font _titleFont = new("Segoe UI Semibold", 20F);
     private readonly Font _textFont = new("Segoe UI", 9.75F);
     private string _status = "Spúšťam…";
 
@@ -35,15 +35,21 @@ public class SplashForm : AppForm
     {
         var g = e.Graphics;
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+        g.Clear(Theme.Surface);
 
         g.DrawImage(_logo, 28, (ClientSize.Height - 96) / 2, 96, 96);
 
         const int textX = 148;
-        g.DrawString("Kalkulácie", _titleFont, Brushes.Black, textX - 4, 40);
-        g.DrawString($"Verzia {AppInfo.Version}", _textFont, Brushes.Gray, textX, 82);
-        g.DrawString(_status, _textFont, Brushes.DimGray, textX, 112);
+        using var text = new SolidBrush(Theme.Text);
+        using var muted = new SolidBrush(Theme.TextMuted);
+        g.DrawString("Kalkulácie", _titleFont, text, textX - 4, 38);
+        g.DrawString($"Verzia {AppInfo.Version}", _textFont, muted, textX, 80);
+        g.DrawString(_status, _textFont, muted, textX, 110);
 
-        using var border = new Pen(Color.FromArgb(180, 180, 180));
+        // Farebný pásik dole a tenký rámik okolo
+        using var accent = new SolidBrush(Theme.Accent);
+        g.FillRectangle(accent, 0, ClientSize.Height - 5, ClientSize.Width, 5);
+        using var border = new Pen(Theme.Border);
         g.DrawRectangle(border, 0, 0, ClientSize.Width - 1, ClientSize.Height - 1);
     }
 
