@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace Kalkulacie.App.Forms;
 
-/// <summary>Výber, vytvorenie a mazanie databáz v priečinku <see cref="AppDb.DataDir"/>.</summary>
+/// <summary>Výber, vytvorenie, obnova a mazanie databáz v priečinku <see cref="AppDb.DataDir"/>.</summary>
 public class DatabasePickerForm : AppForm
 {
     private readonly ListBox lstDatabases = new();
@@ -30,13 +30,13 @@ public class DatabasePickerForm : AppForm
         MinimizeBox = false;
         ShowInTaskbar = true;
         StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(560, 330);
+        ClientSize = new Size(610, 330);
 
         var lblInfo = new Label
         {
             Text = $"Databázy v priečinku:\n{AppDb.DataDir}",
             Location = new Point(12, 10),
-            Size = new Size(536, 40),
+            Size = new Size(586, 40),
             AutoEllipsis = true,
         };
 
@@ -58,30 +58,38 @@ public class DatabasePickerForm : AppForm
         btnDelete.Size = new Size(94, 32);
         btnDelete.Click += (_, _) => DeleteSelected();
 
+        var btnRestore = new Button
+        {
+            Text = "Obnoviť zo zálohy…",
+            Location = new Point(454, 130),
+            Size = new Size(144, 32),
+        };
+        btnRestore.Click += (_, _) => RestoreSelectedBackup();
+
         btnFolder.Text = "Otvoriť priečinok";
         btnFolder.Location = new Point(12, 286);
         btnFolder.Size = new Size(130, 32);
         btnFolder.Click += (_, _) =>
             Process.Start(new ProcessStartInfo { FileName = AppDb.DataDir, UseShellExecute = true });
 
-        btnRefresh.Text = "Obnoviť";
+        btnRefresh.Text = "Načítať zoznam";
         btnRefresh.Location = new Point(148, 286);
-        btnRefresh.Size = new Size(80, 32);
+        btnRefresh.Size = new Size(115, 32);
         btnRefresh.Click += (_, _) => LoadItems();
 
         btnOpen.Text = "Otvoriť";
-        btnOpen.Location = new Point(366, 286);
+        btnOpen.Location = new Point(416, 286);
         btnOpen.Size = new Size(88, 32);
         btnOpen.Click += (_, _) => Accept();
 
         btnCancel.Text = "Zrušiť";
-        btnCancel.Location = new Point(460, 286);
+        btnCancel.Location = new Point(510, 286);
         btnCancel.Size = new Size(88, 32);
         btnCancel.DialogResult = DialogResult.Cancel;
 
         AcceptButton = btnOpen;
         CancelButton = btnCancel;
-        Controls.AddRange([lblInfo, lstDatabases, btnNew, btnDelete, btnFolder, btnRefresh, btnOpen, btnCancel]);
+        Controls.AddRange([lblInfo, lstDatabases, btnNew, btnDelete, btnRestore, btnFolder, btnRefresh, btnOpen, btnCancel]);
 
         LoadItems();
     }
@@ -123,7 +131,7 @@ public class DatabasePickerForm : AppForm
 
     private void CreateNew()
     {
-        var name = PromptName();
+        var name = PromptName("Nová databáza", "Názov novej (prázdnej) databázy:", "Vytvoriť");
         if (name is null) return;
 
         try
@@ -134,6 +142,59 @@ public class DatabasePickerForm : AppForm
         catch (Exception ex)
         {
             MessageBox.Show(this, $"Databázu sa nepodarilo vytvoriť:\n{ex.Message}", "Chyba",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private void RestoreSelectedBackup()
+    {
+        try
+        {
+            var backups = AppDb.ListBackups();
+            if (backups.Count == 0)
+            {
+                MessageBox.Show(this, "Nie sú k dispozícii žiadne zálohy.", "Obnova zo zálohy",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using var dlg = new AppForm
+            {
+                Text = "Obnova zo zálohy",
+                Font = Font,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false,
+                MinimizeBox = false,
+                ShowInTaskbar = false,
+                StartPosition = FormStartPosition.CenterParent,
+                ClientSize = new Size(560, 302),
+            };
+            var label = new Label { Text = "Vyberte zálohu databázy.", Location = new Point(12, 12), AutoSize = true };
+            var list = new ListBox
+            {
+                Location = new Point(12, 38), Size = new Size(536, 210),
+                IntegralHeight = false, HorizontalScrollbar = true,
+            };
+            foreach (var backup in backups)
+                list.Items.Add($"{backup.CreatedAt:dd.MM.yyyy HH:mm:ss}   {backup.DatabaseName}");
+
+            list.SelectedIndex = 0;
+            var next = new Button { Text = "Ďalej…", Location = new Point(366, 258), Size = new Size(88, 32), DialogResult = DialogResult.OK };
+            var cancel = new Button { Text = "Zrušiť", Location = new Point(460, 258), Size = new Size(88, 32), DialogResult = DialogResult.Cancel };
+            dlg.AcceptButton = next;
+            dlg.CancelButton = cancel;
+            dlg.Controls.AddRange([label, list, next, cancel]);
+            if (dlg.ShowDialog(this) != DialogResult.OK || list.SelectedIndex < 0) return;
+
+            var name = PromptName("Obnova zo zálohy", "Názov obnovenej databázy:", "Obnoviť");
+            if (name is null) return;
+
+            var path = AppDb.RestoreBackup(backups[list.SelectedIndex], name);
+            LoadItems(select: path);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"Databázu sa nepodarilo obnoviť:\n{ex.Message}", "Chyba",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
@@ -178,11 +239,11 @@ public class DatabasePickerForm : AppForm
     }
 
     /// <summary>Jednoduchý dialóg na zadanie názvu novej DB; null = zrušené.</summary>
-    private string? PromptName()
+    private string? PromptName(string title, string prompt, string action)
     {
-        using var dlg = new Form
+        using var dlg = new AppForm
         {
-            Text = "Nová databáza",
+            Text = title,
             Font = Font,
             FormBorderStyle = FormBorderStyle.FixedDialog,
             MaximizeBox = false,
@@ -191,10 +252,10 @@ public class DatabasePickerForm : AppForm
             StartPosition = FormStartPosition.CenterParent,
             ClientSize = new Size(360, 150),
         };
-        var lbl = new Label { Text = "Názov novej (prázdnej) databázy:", Location = new Point(12, 12), AutoSize = true };
+        var lbl = new Label { Text = prompt, Location = new Point(12, 12), AutoSize = true };
         var txt = new TextBox { Location = new Point(12, 38), Size = new Size(336, 27) };
         var lblError = new Label { Location = new Point(12, 70), Size = new Size(336, 34), ForeColor = Color.Firebrick };
-        var ok = new Button { Text = "Vytvoriť", Location = new Point(166, 108), Size = new Size(88, 32) };
+        var ok = new Button { Text = action, Location = new Point(166, 108), Size = new Size(88, 32) };
         var cancel = new Button { Text = "Zrušiť", Location = new Point(260, 108), Size = new Size(88, 32), DialogResult = DialogResult.Cancel };
 
         ok.Click += (_, _) =>
