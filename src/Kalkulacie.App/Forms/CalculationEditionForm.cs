@@ -10,7 +10,12 @@ internal sealed class CalculationEditionForm : AppForm
     private readonly TextBox _name = new() { Width = 370 };
     private readonly DateTimePicker _date = new() { Format = DateTimePickerFormat.Short, Width = 125 };
     private readonly TextBox _note = new() { Dock = DockStyle.Fill, Multiline = true, ScrollBars = ScrollBars.Vertical };
-    private readonly TextBox _calculationInfo = new() { Dock = DockStyle.Fill, ReadOnly = true, Multiline = true, ScrollBars = ScrollBars.Vertical };
+    private readonly CoefficientsPanel _coefficients = new() { Dock = DockStyle.Fill, Margin = new Padding(3, 6, 3, 3) };
+    private readonly Label _warnings = new()
+    {
+        AutoSize = true, Visible = false, BackColor = Theme.WarningBack, Padding = new Padding(8, 5, 8, 5),
+        Margin = new Padding(3, 6, 3, 0),
+    };
     private readonly DataGridView _products = EditionControls.Grid(
         (nameof(ProductRow.Name), "Výrobok", 26, null), (nameof(ProductRow.Mode), "Výroba", 10, null),
         (nameof(ProductRow.Material), "Materiál", 11, EditionControls.DecimalFormat),
@@ -74,14 +79,15 @@ internal sealed class CalculationEditionForm : AppForm
         var close = EditionControls.Button("Zavrieť", Close);
         CancelButton = close;
 
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 8, Padding = new Padding(10) };
+        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 9, Padding = new Padding(10) };
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 52));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 48));
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.Controls.Add(EditionControls.Bar(FieldLabel("Názov kalkulácie"), _name, FieldLabel("Dátum"), _date), 0, 0);
         var noteLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = Padding.Empty };
@@ -95,8 +101,9 @@ internal sealed class CalculationEditionForm : AppForm
             _recalculateSelected, _recalculateAll), 0, 3);
         layout.Controls.Add(FieldLabel("Rozpis vybraného výrobku"), 0, 4);
         layout.Controls.Add(_composition, 0, 5);
-        layout.Controls.Add(_calculationInfo, 0, 6);
-        layout.Controls.Add(EditionControls.Bar(save, _output, close), 0, 7);
+        layout.Controls.Add(_coefficients, 0, 6);
+        layout.Controls.Add(_warnings, 0, 7);
+        layout.Controls.Add(EditionControls.Bar(save, _output, close), 0, 8);
         Controls.Add(layout);
 
         _name.TextChanged += (_, _) => MarkDirty();
@@ -128,21 +135,9 @@ internal sealed class CalculationEditionForm : AppForm
             r.Type == RowType.Material ? "Materiál" : "Práca", r.Name, r.Unit, r.Quantity, r.DimensionA,
             r.DimensionB, r.InputPrice, r.Cost)).ToList();
 
-        if (calculation is null)
-        {
-            _calculationInfo.Clear();
-            return;
-        }
-
-        var rules = calculation.Settings;
-        var rounding = rules.RoundingDecimals?.ToString() ?? "bez zaokrúhlenia";
-        var lines = new List<string>
-        {
-            $"Plošný materiál: ručná {rules.AreaMaterialManual:G29} · strojová {rules.AreaMaterialAutomatic:G29}    |    Kusový materiál: {rules.PieceMaterial:G29}",
-            $"Koeficient ceny: ručná {rules.MarginManual:G29} · strojová {rules.MarginAutomatic:G29}    |    Desatinné miesta: {rounding}",
-        };
-        lines.AddRange(calculation.Warnings.Select(warning => $"Upozornenie: {warning}"));
-        _calculationInfo.Lines = lines.ToArray();
+        _coefficients.Display(calculation);
+        _warnings.Text = calculation is null ? "" : string.Join(Environment.NewLine, calculation.Warnings.Select(w => $"Upozornenie: {w}"));
+        _warnings.Visible = _warnings.Text.Length > 0;
     }
 
     private void AddProducts()
