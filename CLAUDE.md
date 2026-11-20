@@ -96,7 +96,7 @@ inú prirážku si používateľ nastaví v koeficientoch.
 | Riadok zloženia — materiál (hľadanie + zoznam) | `Forms/MaterialRowForm` |
 | Riadok zloženia — réžia (hľadanie + zoznam) | `Forms/OperationRowForm` |
 | Cenník: filter, tlač, HTML náhľad, export CSV | `Forms/PriceListForm` |
-| Koeficienty cenových vzorcov (v percentách) | `Forms/PricingSettingsForm` |
+| Koeficienty cenových vzorcov (v percentách, s nápovedou: texty pod nadpismi, ikona ⓘ / F1 / „?“ v titulku) | `Forms/PricingSettingsForm` |
 | Ponuka novej verzie (poznámky, sťahovanie) | `Forms/UpdateForm` |
 
 Verzia a ikona:
