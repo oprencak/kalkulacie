@@ -21,16 +21,28 @@ public partial class PriceListForm : AppForm
     /// <summary>Riadky po filtri typu a hľadaní — to, čo je v gride, sa aj tlačí a exportuje.</summary>
     private List<PriceListEntry> _rows = [];
 
-    // stĺpce: (hlavička, šírka v jednotkách, zarovnanie)
-    private static readonly (string Header, float Weight, StringAlignment Align)[] Columns =
+    /// <summary>
+    /// Stĺpec výstupu. <c>Key</c> sa ukladá v <see cref="CalculationEdition.HiddenColumns"/> — nemeniť.
+    /// <c>Header</c> je zároveň názov stĺpca v gride (vlastnosť <see cref="PriceListRow"/>).
+    /// <c>CsvOnly</c> = stĺpec je len v CSV, nie v tabuľke, náhľade a tlači.
+    /// </summary>
+    private sealed record Column(string Key, string Header, float Weight, StringAlignment Align,
+        Func<PriceListEntry, string, string> Value, bool CsvOnly = false);
+
+    private const string NameKey = "name";
+
+    private readonly List<Column> _columns =
     [
-        ("Výrobok",   3.5f, StringAlignment.Near),
-        ("Typ",       0.8f, StringAlignment.Near),
-        ("Materiál",  1.0f, StringAlignment.Far),
-        ("Práca",     1.0f, StringAlignment.Far),
-        ("UVN",       1.0f, StringAlignment.Far),
-        ("Cena",      1.0f, StringAlignment.Far),
+        new(NameKey,    "Výrobok",  3.5f, StringAlignment.Near, (e, _) => e.Row.Výrobok),
+        new("type",     "Typ",      0.8f, StringAlignment.Near, (e, _) => e.Row.Typ),
+        new("material", "Materiál", 1.0f, StringAlignment.Far,  (e, f) => e.Row.Materiál.ToString(f)),
+        new("labor",    "Práca",    1.0f, StringAlignment.Far,  (e, f) => e.Row.Práca.ToString(f)),
+        new("uvn",      "UVN",      1.0f, StringAlignment.Far,  (e, f) => e.Row.UVN.ToString(f)),
+        new("price",    "Cena",     1.0f, StringAlignment.Far,  (e, f) => e.Row.Cena.ToString(f)),
     ];
+
+    /// <summary>Kľúče vypnutých stĺpcov; pri uloženej kalkulácii sa pamätajú v DB, v cenníku len do zatvorenia okna.</summary>
+    private readonly HashSet<string> _hidden = [];
 
     private int _printRowIndex;
     private int _printPageNumber;
@@ -54,6 +66,14 @@ public partial class PriceListForm : AppForm
             btnPreview.Left -= offset;
             btnPrint.Left -= offset;
             btnExport.Left -= offset;
+            btnColumns.Left -= offset;
+
+            _columns.Add(new("edition", "Kalkulácia", 0, StringAlignment.Near, (_, _) => edition.Name, CsvOnly: true));
+            _columns.Add(new("editionDate", "Dátum kalkulácie", 0, StringAlignment.Near, (_, _) => EditionDate, CsvOnly: true));
+            _columns.Add(new("calculatedAt", "Dátum výpočtu", 0, StringAlignment.Near,
+                (e, _) => $"{e.CalculatedAt:d.M.yyyy HH:mm}", CsvOnly: true));
+            _hidden.UnionWith(edition.HiddenColumns.Split(',', StringSplitOptions.RemoveEmptyEntries));
+            _hidden.Remove(NameKey);
         }
         Load += OnLoad;
     }
@@ -128,8 +148,43 @@ public partial class PriceListForm : AppForm
                 col.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             }
         }
+        foreach (var column in _columns.Where(c => !c.CsvOnly))
+            grid.Columns[column.Header]!.Visible = !_hidden.Contains(column.Key);
         grid.Columns["Výrobok"]!.FillWeight = 300;
         grid.Invalidate();
+    }
+
+    /// <summary>Zapnuté stĺpce pre tabuľku, náhľad a tlač; s <paramref name="csv"/> aj stĺpce, ktoré sú len v CSV.</summary>
+    private List<Column> OutputColumns(bool csv = false) =>
+        _columns.Where(c => !_hidden.Contains(c.Key) && (csv || !c.CsvOnly)).ToList();
+
+    private void btnColumns_Click(object sender, EventArgs e)
+    {
+        var menu = new ContextMenuStrip { ShowCheckMargin = true, ShowImageMargin = false };
+        foreach (var column in _columns.Where(c => c.Key != NameKey))
+        {
+            var item = new ToolStripMenuItem(column.CsvOnly ? $"{column.Header} (len v CSV)" : column.Header)
+            {
+                Checked = !_hidden.Contains(column.Key), CheckOnClick = true,
+            };
+            item.CheckedChanged += (_, _) => SetColumnVisible(column, item.Checked);
+            menu.Items.Add(item);
+        }
+        // Ponuka ostáva otvorená, aby sa dalo zaškrtnúť viac stĺpcov naraz.
+        menu.Closing += (_, args) => args.Cancel = args.CloseReason == ToolStripDropDownCloseReason.ItemClicked;
+        menu.Closed += (_, _) => BeginInvoke(menu.Dispose);
+        menu.Show(btnColumns, new Point(0, -menu.GetPreferredSize(Size.Empty).Height));
+    }
+
+    private void SetColumnVisible(Column column, bool visible)
+    {
+        if (visible) _hidden.Remove(column.Key);
+        else _hidden.Add(column.Key);
+        ApplyFormat();
+
+        if (_edition is null) return;
+        _edition.HiddenColumns = string.Join(",", _columns.Select(c => c.Key).Where(_hidden.Contains));
+        CalculationEditions.SaveHiddenColumns(_edition);
     }
 
     private void rdFilter_CheckedChanged(object sender, EventArgs e)
@@ -143,13 +198,6 @@ public partial class PriceListForm : AppForm
     private void numDecimals_ValueChanged(object sender, EventArgs e) => ApplyFormat();
 
     private void btnRefresh_Click(object sender, EventArgs e) => RefreshGrid();
-
-    private string[] FormatValues(PriceListRow row, string numberFormat) =>
-    [
-        row.Výrobok, row.Typ,
-        row.Materiál.ToString(numberFormat), row.Práca.ToString(numberFormat),
-        row.UVN.ToString(numberFormat), row.Cena.ToString(numberFormat),
-    ];
 
     private void btnPreview_Click(object sender, EventArgs e)
     {
@@ -201,17 +249,11 @@ public partial class PriceListForm : AppForm
     {
         // Bez oddeľovača tisícov, aby Excel hodnoty čítal ako čísla.
         var format = _edition is null ? $"F{(int)numDecimals.Value}" : EditionControls.DecimalFormat;
-        IEnumerable<string> headers = Columns.Select(c => c.Header);
-        if (_edition is not null) headers = headers.Concat(["Kalkulácia", "Dátum kalkulácie", "Dátum výpočtu"]);
-        yield return string.Join(";", headers.Select(CsvField));
+        var columns = OutputColumns(csv: true);
+        yield return string.Join(";", columns.Select(c => CsvField(c.Header)));
 
         foreach (var entry in _rows)
-        {
-            IEnumerable<string> values = FormatValues(entry.Row, format);
-            if (_edition is not null)
-                values = values.Concat([_edition.Name, EditionDate, $"{entry.CalculatedAt:d.M.yyyy HH:mm}"]);
-            yield return string.Join(";", values.Select(CsvField));
-        }
+            yield return string.Join(";", columns.Select(c => CsvField(c.Value(entry, format))));
     }
 
     private bool ConfirmExport()
@@ -275,18 +317,18 @@ public partial class PriceListForm : AppForm
         sb.AppendLine($"<h2>{Encode(Title)}</h2>");
         sb.AppendLine($"<p>{Encode(OutputContext)} — {Encode(FilterLabel)} — " +
             $"{DateTime.Now:d.M.yyyy H:mm} — počet: {_rows.Count}</p>");
+        var columns = OutputColumns();
         sb.AppendLine("<table><thead><tr>" +
-            string.Concat(Columns.Select(c => $"<th>{Encode(c.Header)}</th>")) +
+            string.Concat(columns.Select(c => $"<th>{Encode(c.Header)}</th>")) +
             "</tr></thead><tbody>");
 
         foreach (var r in _rows)
         {
-            var values = FormatValues(r.Row, NumberFormat);
             sb.Append("<tr>");
-            for (int i = 0; i < values.Length; i++)
-                sb.Append(Columns[i]!.Align == StringAlignment.Far
-                    ? $"<td class='r'>{values[i]}</td>"
-                    : $"<td>{Encode(values[i])}</td>");
+            foreach (var c in columns)
+                sb.Append(c.Align == StringAlignment.Far
+                    ? $"<td class='r'>{c.Value(r, NumberFormat)}</td>"
+                    : $"<td>{Encode(c.Value(r, NumberFormat))}</td>");
             sb.AppendLine("</tr>");
         }
 
@@ -302,8 +344,9 @@ public partial class PriceListForm : AppForm
         var bounds = e.MarginBounds;
         _printPageNumber++;
 
-        float totalWeight = Columns.Sum(c => c.Weight);
-        float[] colWidths = Columns.Select(c => c.Weight / totalWeight * bounds.Width).ToArray();
+        var columns = OutputColumns();
+        float totalWeight = columns.Sum(c => c.Weight);
+        float[] colWidths = columns.Select(c => c.Weight / totalWeight * bounds.Width).ToArray();
 
         using var headerFont = new Font("Segoe UI", 8F, FontStyle.Bold);
         using var rowFont = new Font("Segoe UI", 8F);
@@ -333,12 +376,12 @@ public partial class PriceListForm : AppForm
         // Hlavička stĺpcov
         float rowH = headerFont.GetHeight(g) + 4;
         float x = bounds.Left;
-        for (int i = 0; i < Columns.Length; i++)
+        for (int i = 0; i < columns.Count; i++)
         {
-            using var fmt = new StringFormat { Alignment = Columns[i]!.Align, LineAlignment = StringAlignment.Center };
+            using var fmt = new StringFormat { Alignment = columns[i].Align, LineAlignment = StringAlignment.Center };
             var rect = new RectangleF(x, y, colWidths[i], rowH);
             g.FillRectangle(Brushes.LightGray, rect);
-            g.DrawString(Columns[i]!.Header, headerFont, Brushes.Black, rect, fmt);
+            g.DrawString(columns[i].Header, headerFont, Brushes.Black, rect, fmt);
             x += colWidths[i];
         }
         y += rowH;
@@ -356,20 +399,20 @@ public partial class PriceListForm : AppForm
                 break;
             }
 
-            string[] values = FormatValues(_rows[_printRowIndex].Row, numberFormat);
+            var entry = _rows[_printRowIndex];
 
             x = bounds.Left;
-            for (int i = 0; i < Columns.Length; i++)
+            for (int i = 0; i < columns.Count; i++)
             {
                 using var fmt = new StringFormat
                 {
-                    Alignment = Columns[i]!.Align,
+                    Alignment = columns[i].Align,
                     LineAlignment = StringAlignment.Center,
                     Trimming = StringTrimming.EllipsisCharacter,
                     FormatFlags = StringFormatFlags.NoWrap,
                 };
                 var rect = new RectangleF(x + 2, y, colWidths[i] - 4, rowH);
-                g.DrawString(values[i], rowFont, Brushes.Black, rect, fmt);
+                g.DrawString(columns[i].Value(entry, numberFormat), rowFont, Brushes.Black, rect, fmt);
                 x += colWidths[i];
             }
 

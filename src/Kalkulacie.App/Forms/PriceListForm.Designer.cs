@@ -18,6 +18,7 @@ partial class PriceListForm
         this.btnPreview = new Button();
         this.btnPrint = new Button();
         this.btnExport = new Button();
+        this.btnColumns = new Button();
         this.rdAll = new RadioButton();
         this.rdManual = new RadioButton();
         this.rdAutomatic = new RadioButton();
@@ -117,6 +118,13 @@ partial class PriceListForm
         this.btnExport.Text = "Export do CSV...";
         this.btnExport.Click += new EventHandler(this.btnExport_Click);
 
+        // btnColumns
+        this.btnColumns.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+        this.btnColumns.Location = new Point(504, 546);
+        this.btnColumns.Size = new Size(100, 30);
+        this.btnColumns.Text = "Stĺpce...";
+        this.btnColumns.Click += new EventHandler(this.btnColumns_Click);
+
         // PriceListForm
         this.AutoScaleDimensions = new SizeF(7F, 15F);
         this.AutoScaleMode = AutoScaleMode.Font;
@@ -133,6 +141,7 @@ partial class PriceListForm
         this.Controls.Add(this.btnPreview);
         this.Controls.Add(this.btnPrint);
         this.Controls.Add(this.btnExport);
+        this.Controls.Add(this.btnColumns);
         this.Controls.Add(this.lblCount);
         this.MinimumSize = new Size(800, 400);
         this.Name = "PriceListForm";
@@ -149,6 +158,7 @@ partial class PriceListForm
     private Button btnPreview;
     private Button btnPrint;
     private Button btnExport;
+    private Button btnColumns;
     private RadioButton rdAll;
     private RadioButton rdManual;
     private RadioButton rdAutomatic;

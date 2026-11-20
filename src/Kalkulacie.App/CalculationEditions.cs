@@ -69,6 +69,7 @@ internal static class CalculationEditions
         saved.Name = name;
         saved.Date = edition.Date;
         saved.Note = edition.Note;
+        saved.HiddenColumns = edition.HiddenColumns;
         saved.Revision++;
 
         var incoming = edition.Products.ToDictionary(x => x.ProductId);
@@ -107,6 +108,14 @@ internal static class CalculationEditions
         edition.Id = saved.Id;
         edition.Revision = saved.Revision;
         edition.Name = saved.Name;
+    }
+
+    /// <summary>Uloží len výber stĺpcov — bez zmeny revízie, aby otvorená kalkulácia ostala platná.</summary>
+    public static void SaveHiddenColumns(CalculationEdition edition)
+    {
+        using var db = AppDb.CreateContext();
+        db.CalculationEditions.Where(x => x.Id == edition.Id)
+            .ExecuteUpdate(s => s.SetProperty(x => x.HiddenColumns, edition.HiddenColumns));
     }
 
     public static void Delete(ListItem edition)
