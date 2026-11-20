@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Kalkulacie.App": {
+      "commandName": "Project"
+    },
+    "Test": {
+      "commandName": "Project",
+      "commandLineArgs": "--test-data"
+    }
+  }
+}

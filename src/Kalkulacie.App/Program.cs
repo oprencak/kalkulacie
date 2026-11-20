@@ -26,11 +26,21 @@ static class Program
             Updater.WaitForPreviousInstance(args);
         }
 
+#if DEBUG
+        // Profil „Test“: vlastná databáza so vzorovými dátami namiesto výberu DB
+        bool testData = args.Contains(TestData.Argument);
+        if (testData) AppDb.PrepareDataDir();
+        var dbPath = testData ? TestData.DbPath : ChooseDatabaseOnStartup(splash);
+#else
         var dbPath = ChooseDatabaseOnStartup(splash);
+#endif
         if (dbPath is null) return;
 
         splash.ShowStatus($"Otváram databázu {Path.GetFileNameWithoutExtension(dbPath)}…");
         AppDb.Open(dbPath);
+#if DEBUG
+        if (testData) TestData.SeedIfEmpty();
+#endif
 
         var mainForm = new MainForm();
         mainForm.Shown += (_, _) =>

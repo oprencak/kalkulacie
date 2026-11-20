@@ -9,6 +9,8 @@ public class CalculationEdition
     public DateOnly Date { get; set; }
     public string Note { get; set; } = "";
     public int Revision { get; set; }
+    /// <summary>Kľúče stĺpcov vypnutých pri tlači a exporte, oddelené čiarkou (prázdne = všetky stĺpce).</summary>
+    public string HiddenColumns { get; set; } = "";
     public ICollection<CalculationEditionProduct> Products { get; set; } = [];
 }
 

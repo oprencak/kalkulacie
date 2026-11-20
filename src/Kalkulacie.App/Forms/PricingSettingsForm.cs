@@ -359,12 +359,6 @@ public class PricingSettingsForm : AppForm
             return;
         }
 
-        if (MessageBox.Show(this,
-                $"Zmena sa okamžite prejaví v cenách všetkých výrobkov v databáze „{AppDb.DbName}“.\n\n" +
-                "Pôvodné ceny sa neuchovávajú. Uložiť?",
-                "Zmena koeficientov", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
-            return;
-
         using var db = AppDb.CreateContext();
         var settings = db.PricingSettings.FirstOrDefault();
         if (settings is null)

@@ -134,6 +134,13 @@ Konvencie UI:
 dotnet run --project src/Kalkulacie.App
 ```
 
+Testovací profil (len Debug, do publikovaného exe sa nedostane): otvorí `data\Test.db` bez výberu DB a prázdnu
+ju naplní vzorovými dátami (`src/Kalkulacie.App/TestData.cs`). Čistý stav = zmazať `Test.db`.
+
+```
+dotnet run --project src/Kalkulacie.App --launch-profile Test
+```
+
 ## Import z FoxPro
 
 Vždy vytvára DB od nuly (existujúci cieľový súbor zmaže).
