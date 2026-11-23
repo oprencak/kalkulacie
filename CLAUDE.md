@@ -25,6 +25,11 @@ Projekty:
 - `src/Kalkulacie.Core` — entity, DbContext, cenové vzorce
 - `src/Kalkulacie.App` — WinForms formuláre
 - `src/Kalkulacie.Import` — konzolový import z FoxPro DBF do novej SQLite DB (vlastný DBF reader v `Dbf/`)
+- `src/Kalkulacie.Wpf` — prototyp nového UI (WPF + WPF UI od Lepoco), beží vedľa WinForms aplikácie nad tým istým
+  `Kalkulacie.Core`; zatiaľ len tok Výrobky → detail → pridanie materiálu. Menný priestor je `Kalkulacie.Desktop`
+  (`Kalkulacie.Wpf` koliduje s `Wpf.Ui` v generovanom kóde XAML). `AppDb.cs` a `TextSearch.cs` sú linkované
+  z `Kalkulacie.App`. Spustenie: `dotnet run --project src/Kalkulacie.Wpf -- --db <cesta k .db>`
+  (bez `--db` sa berie `data\` vedľa exe). Snímky v `docs/wpf-prototyp` sú nad vymyslenými dátami.
 
 Zálohy: pri každom otvorení DB sa pred migráciou uloží kópia do `data\zalohy\<db>_<yyyyMMdd_HHmmss>.db`
 (len ak sa DB od poslednej zálohy zmenila; drží sa posledných 10 na databázu) — `AppDb.Backup`.
