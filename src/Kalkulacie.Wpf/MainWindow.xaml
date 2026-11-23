@@ -1,0 +1,77 @@
+<ui:FluentWindow x:Class="Kalkulacie.Desktop.MainWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:pages="clr-namespace:Kalkulacie.Desktop.Pages"
+                 Title="Kalkulácie"
+                 Width="1360" Height="820"
+                 MinWidth="900" MinHeight="600"
+                 WindowStartupLocation="CenterScreen"
+                 ExtendsContentIntoTitleBar="True"
+                 WindowBackdropType="Mica"
+                 WindowCornerPreference="Round"
+                 Icon="pack://application:,,,/palma.ico"
+                 SizeChanged="OnSizeChanged">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar x:Name="AppTitleBar" Grid.Row="0" Title="Kalkulácie">
+            <ui:TitleBar.Icon>
+                <ui:ImageIcon Source="pack://application:,,,/palma.ico" />
+            </ui:TitleBar.Icon>
+        </ui:TitleBar>
+
+        <!-- V prototype je funkčná len sekcia Výrobky; ostatné položky ukazujú budúcu štruktúru navigácie. -->
+        <ui:NavigationView x:Name="Nav" Grid.Row="1"
+                           PaneDisplayMode="Left"
+                           OpenPaneLength="200"
+                           IsBackButtonVisible="Collapsed"
+                           IsPaneToggleVisible="True"
+                           Padding="0"
+                           Loaded="OnNavLoaded">
+            <ui:NavigationView.MenuItems>
+                <ui:NavigationViewItem Content="Výrobky" TargetPageType="{x:Type pages:ProductsPage}"
+                                       NavigationCacheMode="Required">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Box24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Kalkulácie" IsEnabled="False"
+                                       ToolTip="Mimo rozsahu prototypu" ToolTipService.ShowOnDisabled="True">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Calculator24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Uložené kalkulácie" IsEnabled="False"
+                                       ToolTip="Mimo rozsahu prototypu" ToolTipService.ShowOnDisabled="True">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Archive24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Materiály" IsEnabled="False"
+                                       ToolTip="Mimo rozsahu prototypu" ToolTipService.ShowOnDisabled="True">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Cube24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Réžia / Práca" IsEnabled="False"
+                                       ToolTip="Mimo rozsahu prototypu" ToolTipService.ShowOnDisabled="True">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Wrench24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+            </ui:NavigationView.MenuItems>
+            <ui:NavigationView.FooterMenuItems>
+                <ui:NavigationViewItem Content="Koeficienty" IsEnabled="False"
+                                       ToolTip="Mimo rozsahu prototypu" ToolTipService.ShowOnDisabled="True">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Settings24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+            </ui:NavigationView.FooterMenuItems>
+        </ui:NavigationView>
+    </Grid>
+</ui:FluentWindow>
