@@ -1,14 +1,24 @@
-# Kalkulácie
+<p align="center">
+  <img src="docs/ikona.png" width="96" alt="Ikona programu Kalkulácie">
+</p>
 
-[![Najnovšia verzia](https://img.shields.io/github/v/release/oprencak/kalkulacie?label=verzia)](https://github.com/oprencak/kalkulacie/releases/latest)
-![Platforma](https://img.shields.io/badge/platforma-Windows%20x64-blue)
-![.NET](https://img.shields.io/badge/.NET-10-512BD4)
+<h1 align="center">Kalkulácie</h1>
+
+<p align="center">
+  <a href="https://github.com/oprencak/kalkulacie/releases/latest"><img src="https://img.shields.io/github/v/release/oprencak/kalkulacie?label=verzia" alt="Najnovšia verzia"></a>
+  <img src="https://img.shields.io/badge/platforma-Windows%20x64-blue" alt="Platforma: Windows x64">
+  <img src="https://img.shields.io/badge/.NET-10-512BD4" alt=".NET 10">
+</p>
 
 Kalkulačný a cenníkový program pre výrobnú firmu. Z ceny materiálov, sadzieb práce a zloženia výrobku
 vypočíta jeho nákladovú a predajnú cenu.
 
 Je to prepis pôvodnej FoxPro aplikácie, ktorá bola v prevádzke od roku 1997, do .NET (WinForms + SQLite).
 Cenové vzorce sú prevzaté z originálu.
+
+<p align="center">
+  <img src="docs/hlavne-menu.png" width="362" alt="Hlavné menu">
+</p>
 
 ## Obsah
 
@@ -72,11 +82,15 @@ V **Výrobky** vytvorte výrobok a zvoľte typ výroby (ručná / automat). V de
 Poradie riadkov meníte tlačidlami Hore / Dole. Zmeny v zložení sa ukladajú hneď, cena sa prepočíta okamžite.
 Podobný výrobok najrýchlejšie vytvoríte kopírovaním existujúceho.
 
+![Detail výrobku so zložením a cenou](docs/detail-vyrobku.png)
+
 ### 3. Cenník
 
 **Kalkulácie** zobrazia aktuálne ceny všetkých výrobkov. Zoznam možno filtrovať podľa typu výroby, hľadať
 v ňom, tlačiť, zobraziť náhľad a exportovať do CSV (napr. pre Excel). Tlačidlom **Stĺpce…** vyberiete,
 ktoré stĺpce pôjdu do tlače a exportu.
+
+![Cenník všetkých výrobkov](docs/cennik.png)
 
 Pred exportom program upozorní na podozrivé kalkulácie: výrobok bez zloženia, materiál s nulovou cenou,
 chýbajúci rozmer plošného materiálu.
@@ -88,10 +102,14 @@ potrebujete cenník zachovať v stave k určitému dňu (napr. ponuka pre zákaz
 **Uloženú kalkuláciu**. Tú možno neskôr prepočítať na aktuálne ceny; program najprv ukáže porovnanie
 starých a nových cien.
 
+![Zoznam uložených kalkulácií](docs/ulozene-kalkulacie.png)
+
 ### 5. Koeficienty
 
 V **Koeficienty** sa nastavujú prirážky (v percentách) a počet desatinných miest zaokrúhľovania. Zmena sa
 hneď prejaví vo všetkých výrobkoch. Ku každému koeficientu je nápoveda (ikona ⓘ alebo F1).
+
+![Nastavenie koeficientov](docs/koeficienty.png)
 
 ### Hľadanie
 
